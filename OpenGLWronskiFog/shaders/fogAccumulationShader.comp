@@ -1,0 +1,39 @@
+#version 430
+layout (local_size_x = 160, local_size_y = 9, local_size_z = 1) in;
+layout (rgba32f, binding = 2) uniform image3D imgInput;
+layout (rgba32f, binding = 3) uniform image3D imgOutput;
+
+// Based on Wronski's chapter on volumetric fog in GPU Pro 360, chapt. 18:
+
+vec4 accumulateScattering(vec4 currentSlice, vec4 nextSlice)
+{
+	// Apply transmittance to in-scattered light accumulated so far:
+	vec3 light = currentSlice.rgb + clamp(exp(-currentSlice.a), 0.0, 1.0) * nextSlice.rgb;
+	return vec4(light, currentSlice.a + nextSlice.a);
+}
+
+void outputResults(ivec3 writePos, vec4 outputVal)
+{
+	vec4 finalVal = vec4(outputVal.rgb, exp(-outputVal.a));
+	imageStore(imgOutput, writePos, finalVal);
+}
+
+void main()
+{
+	// Get scattering and extinction from the first slice texel:
+	vec4 currentSliceVal = imageLoad(imgInput, ivec3(gl_GlobalInvocationID.xy, 0.0));
+
+	// Write data from first slice of input texture into first slice of output texture:
+	imageStore(imgOutput, ivec3(gl_GlobalInvocationID.xy, 0.0), currentSliceVal);
+	uint texDepth = imageSize(imgInput).z;
+
+	// Accumulate scattering and transmittance for each texture slice:
+	for (uint z = 1; z < texDepth; ++z)
+	{
+		// Read scattering and extinction values from input 3D texture:
+		vec4 nextSliceVal = imageLoad(imgInput, ivec3(gl_GlobalInvocationID.xy, z));
+		currentSliceVal = accumulateScattering(currentSliceVal, nextSliceVal);
+		
+		outputResults(ivec3(gl_GlobalInvocationID), currentSliceVal);
+	}
+}
