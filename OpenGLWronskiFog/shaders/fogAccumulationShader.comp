@@ -34,6 +34,6 @@ void main()
 		vec4 nextSliceVal = imageLoad(imgInput, ivec3(gl_GlobalInvocationID.xy, z));
 		currentSliceVal = accumulateScattering(currentSliceVal, nextSliceVal);
 		
-		outputResults(ivec3(gl_GlobalInvocationID), currentSliceVal);
+		outputResults(ivec3(gl_GlobalInvocationID), currentSliceVal);;
 	}
 }
