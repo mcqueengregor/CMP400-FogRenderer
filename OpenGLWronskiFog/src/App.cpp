@@ -45,6 +45,25 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 	ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
+	// Print max number of compute worker groups:
+	int workGroupCount[3];
+	for (int i = 0; i < 3; ++i)
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, i, &workGroupCount[i]);
+	printf("\nMax global (total) work group counts: (%i, %i, %i)\n",
+		workGroupCount[0], workGroupCount[1], workGroupCount[2]);
+
+	// Print max size of a compute worker group for each axis:
+	int workGroupSize[3];
+	for (int i = 0; i < 3; ++i)
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, i, &workGroupSize[i]);
+	printf("Max local work group sizes (in one shader): (%i, %i, %i)\n",
+		workGroupSize[0], workGroupSize[1], workGroupSize[2]);
+
+	// Print max number of local worker group invocations:
+	int workGroupInvocations;
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &workGroupInvocations);
+	printf("Max local work group invocations: %i\n\n", workGroupInvocations);
+
 	return true;
 }
 
@@ -272,10 +291,6 @@ void App::gui()
 
 		ImGui::SliderFloat3("Planet position", &m_planetPosition.x, -10.f, 10.f);
 
-		if (ImGui::CollapsingHeader("Raymarching parameters"))
-		{
-			ImGui::SliderFloat("Smooth minimum", &m_raymarchKParam, 0.001f, 3.f);
-		}
 		if (ImGui::CollapsingHeader("Fog parameters"))
 		{
 			ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
@@ -459,7 +474,7 @@ GLFWwindow* App::initWindow()
 		return NULL;
 	}
 	std::cout << "Successfully initialised GLAD!\nOpenGL version: "
-		<< glGetString(GL_VERSION) << "\n\n";
+		<< glGetString(GL_VERSION) << "\n";
 
 	glViewport(0, 0, m_winWidth, m_winHeight);
 
