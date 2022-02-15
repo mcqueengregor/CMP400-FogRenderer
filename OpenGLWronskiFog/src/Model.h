@@ -31,34 +31,34 @@ public:
     }
 
     // Position setters (overwrites previous transforms):
-    void setPosition(float x, float y, float z) {
+    inline void setPosition(float x, float y, float z) {
         m_worldMat = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
     }
-    void setPosition(glm::vec3 newPos) {
+    inline void setPosition(glm::vec3 newPos) {
         m_worldMat = glm::translate(glm::mat4(1.0f), newPos);
     }
 
     // Translation functions:
-    void translate(float x, float y, float z) {
+    inline void translate(float x, float y, float z) {
         m_worldMat = glm::translate(m_worldMat, glm::vec3(x, y, z));
     }
-    void translate(glm::vec3 newPos) {
+    inline void translate(glm::vec3 newPos) {
         m_worldMat = glm::translate(m_worldMat, newPos);
     }
 
     // Scale functions:
-    void scale(float uniformScale) {
+    inline void scale(float uniformScale) {
         m_worldMat = glm::scale(m_worldMat, glm::vec3(uniformScale));
     }
-    void scale(float x, float y, float z) {
+    inline void scale(float x, float y, float z) {
         m_worldMat = glm::scale(m_worldMat, glm::vec3(x, y, z));
     }
 
     // Rotation functions (degrees):
-    void rotate(float x, float y, float z, float angleDegrees) {
+    inline void rotate(float x, float y, float z, float angleDegrees) {
         m_worldMat = glm::rotate(m_worldMat, glm::radians(angleDegrees), glm::vec3(x, y, z));
     }
-    void rotate(glm::vec3 rot, float angleDegrees) {
+    inline void rotate(glm::vec3 rot, float angleDegrees) {
         m_worldMat = glm::rotate(m_worldMat, glm::radians(angleDegrees), rot);
     }
 

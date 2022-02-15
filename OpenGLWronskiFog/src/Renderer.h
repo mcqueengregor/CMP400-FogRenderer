@@ -39,6 +39,21 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 	}
 
+	static void draw(const VAO& vao, GLuint size, const Shader& shader)
+	{
+		shader.use();
+		vao.bind();
+
+		glDrawArrays(GL_TRIANGLES, 0, size);
+	}
+
+	static void draw(GLuint VAO, GLuint size, const Shader& shader)
+	{
+		shader.use();
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, size);
+	}
+
 	static void drawInstanced(const Model& model, const Shader& shader, const int instanceCount)
 	{
 		shader.use();

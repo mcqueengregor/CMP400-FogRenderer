@@ -1,5 +1,6 @@
 #pragma once
 #include "GLObject.h"
+#include "GLErrorManager.h"
 
 class VAO : public GLObject
 {
@@ -51,8 +52,8 @@ public:
 		glDeleteVertexArrays(1, &m_handle);
 		glDeleteBuffers(1, &m_VBOhandle);
 	}
-	void bind()		{ glBindVertexArray(m_handle); }
-	void unbind()	{ glBindVertexArray(0); }
+	void bind()		{ GLCALL(glBindVertexArray(m_handle)); }
+	void unbind()	{ GLCALL(glBindVertexArray(0)); }
 private:
 	GLuint m_VBOhandle;
 };

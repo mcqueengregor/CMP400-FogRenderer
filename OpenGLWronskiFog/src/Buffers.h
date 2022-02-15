@@ -89,7 +89,7 @@ public:
 		GLCALL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords)));
 	}
 	void bind() const {
-		glBindVertexArray(m_handle);
+		GLCALL(glBindVertexArray(m_handle));
 	}
 	void unbind() const {
 		GLCALL(glBindVertexArray(0));

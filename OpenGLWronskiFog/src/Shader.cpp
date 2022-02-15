@@ -115,6 +115,7 @@ void Shader::setMat4(const std::string& name, glm::mat4 val) const
 
 void Shader::setPointLight(const std::string& name, PointLight light) const
 {
+	glUniform3f(glGetUniformLocation(m_ID, (name + ".position").c_str()), light.getPosition().x, light.getPosition().y, light.getPosition().z);
 	glUniform3f(glGetUniformLocation(m_ID, (name + ".ambient").c_str()), light.getAmbient().x, light.getAmbient().y, light.getAmbient().z);
 	glUniform3f(glGetUniformLocation(m_ID, (name + ".diffuse").c_str()), light.getDiffuse().x, light.getDiffuse().y, light.getDiffuse().z);
 	glUniform3f(glGetUniformLocation(m_ID, (name + ".specular").c_str()), light.getSpecular().x, light.getSpecular().y, light.getSpecular().z);

@@ -37,7 +37,7 @@ public:
 
 private:
 	void processInput(GLFWwindow* window, float dt);
-	void update();
+	void update(float dt);
 	void render();
 	void gui();
 
@@ -77,8 +77,11 @@ private:
 	glm::vec3			m_fogAbsorption		= glm::vec3(1.0f);
 	glm::vec3			m_fogAlbedo			= glm::vec3(1.0f);
 	float				m_fogPhaseGParam	= 0.0f;
-	float				m_noiseFreq			= 0.02f;
-	float				m_raymarchKParam	= 1e-2;
+	float				m_fogDensity		= 0.05f;
+
+	float				m_noiseFreq			= 0.4f;
+	glm::vec3			m_noiseOffset		= glm::vec3(0.0f);
+	glm::vec3			m_windDirection		= glm::vec3(0.0f, 0.0f, 0.0f);
 
 	// Lights:
 	PointLight m_light;
@@ -89,11 +92,18 @@ private:
 	float m_pointLightConstant		= 1.0f;
 	float m_pointLightLinear		= 0.09f;
 	float m_pointLightQuadratic		= 0.032f;
+	float m_lightIntensity			= 3.0f;
 
 	// VAOs, VBOs and EBOs:
 	GLuint m_fullscreenQuadVAO;
 	GLuint m_fullscreenQuadVBO;
 	GLuint m_asteroidMatricesVBO;
+	GLuint m_planeVAO;
+	GLuint m_planeVBO;
+	GLuint m_lightCubeVAO;
+	GLuint m_lightCubeVBO;
+
+	VAO m_testQuadVAO;
 
 	// UBOs:
 	GLuint m_matricesUBO;
@@ -120,7 +130,6 @@ private:
 	Model	m_planet;
 	Model	m_rock;
 	GLuint	m_rockTex;
-	GLuint	m_raymarchTex;
 	GLuint	m_fogScatterAbsorbTex;
 	GLuint	m_fogAccumTex;
 
@@ -131,16 +140,24 @@ private:
 
 	// Matrices:
 	glm::mat4 m_proj;
+	glm::mat4 m_planeWorld;
+	glm::mat4 m_lightCubeWorld;
 
 	// Misc application data:
 	float	m_dt{};
 	float	m_lastFrame{};
+
+	float m_nearPlane = 0.1f;
+	float m_farPlane = 150.0f;
+
 	GLuint	m_winWidth;
 	GLuint	m_winHeight;
+
 	bool	m_wireframe = false;
 	bool	m_hasRightClicked = false;
 	bool	m_outputDepth = false;
 	bool	m_applyFog = false;
+
 	double	m_originalCursorPosX;
 	double	m_originalCursorPosY;
 };

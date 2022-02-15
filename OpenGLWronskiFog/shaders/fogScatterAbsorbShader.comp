@@ -33,11 +33,12 @@ uniform vec3	u_scatteringCoefficient;
 uniform vec3	u_absorptionCoefficient;
 uniform vec2	u_fogHeightRange;
 uniform float	u_phaseGParam;
+uniform float	u_fogDensity;
+uniform float	u_lightIntensity;
 
 // Noise data uniforms:
 uniform float	u_noiseFreq;
-uniform vec3	u_noiseWindDir;
-uniform float	u_time;
+uniform vec3	u_noiseOffset;
 
 // Light data uniforms:
 uniform int			u_numLights;
@@ -128,42 +129,41 @@ float getFroxelDepth(uint slice)
 float getSliceThickness(uint slice)
 {
 	// If this slice isn't the first slice, the slice depth is current slice depth - previous slice depth:
-	if (slice > 1)
-		return getFroxelDepth(slice) - getFroxelDepth(slice - 1);
+	if (slice > 1) return getFroxelDepth(slice) - getFroxelDepth(slice - 1);
 
 	return 0.0;
 }
 
 vec3 getWorldPos(uvec3 globalThreadID)
 {
-	// World position is camPos + dir * froxelDepth, where dir is vec3(invocationID.xy - (frameSize * 0.5)) / frameSize.y, 1.0) * cameraMat:
+	// World position is cameraMat * camPos + dir * froxelDepth, where dir is vec3(invocationID.xy - (frameSize * 0.5)) / frameSize.y, 1.0):
 	vec2 frameSize = imageSize(imgOutput).xy;
 	vec2 uv = vec2(globalThreadID.xy - (frameSize * 0.5)) / frameSize.y;
-	vec3 dir = normalize(vec3(uv.xy, 1.0)) * mat3(u_matrices.view);	// View matrix is used as a mat3 since only camera rotation is needed.
+	vec3 dir = mat3(u_matrices.view) * normalize(vec3(uv.xy, 1.0));	// View matrix is used as a mat3 since only camera rotation is needed.
 	return u_cameraPos + dir * getFroxelDepth(globalThreadID.z);
 }
 
 float phaseHG(uint lightIndex, vec3 worldPos, float g)
 {
 	vec3 lightDir = u_pointLights[lightIndex].position - worldPos;
-	return 1 / (4 * PI) * (1 - u_phaseGParam * g) / pow(1 + g * g - 2 * g * dot(u_cameraForward, lightDir), 3 / 2);
+	return 1 / (4 * PI) * (1 - g * g) / pow(1 + g * g - 2 * g * dot(u_cameraForward, normalize(lightDir)), 3 / 2);
 }
 
 // Get lighting intensity from point light (diffuse only):
 vec3 calcPointLight(uint lightIndex, vec3 worldPos)
 {
     // Calculate attenuation:
-    float distance = length(u_pointLights[lightIndex].position - worldPos);
-    float attenuation = 1.0 / (u_pointLights[lightIndex].constant + u_pointLights[lightIndex].linear * distance + u_pointLights[lightIndex].quadratic * (distance * distance));    
+    float dist = length(u_pointLights[lightIndex].position - worldPos);
+    float attenuation = 1.0 / (u_pointLights[lightIndex].constant + u_pointLights[lightIndex].linear * dist + u_pointLights[lightIndex].quadratic * (dist * dist));    
 
-    return u_pointLights[lightIndex].diffuse * attenuation;
+    return u_pointLights[lightIndex].diffuse * attenuation * u_lightIntensity;
 }
 
 void main()
 {
 	vec3 worldPos = getWorldPos(gl_GlobalInvocationID);
 	float thickness = getSliceThickness(gl_GlobalInvocationID.z);
-	float density = perlinNoise(worldPos * u_noiseFreq) /* + remapped height stuff */;
+	float density = perlinNoise((worldPos + u_noiseOffset) * u_noiseFreq) /* + remapped height stuff */;
 
 	vec3 scattering = u_scatteringCoefficient * thickness * density;
 	vec3 absorption = u_absorptionCoefficient * thickness * density;
@@ -181,5 +181,5 @@ void main()
 	lighting *= u_albedo;
 
 	// Write results to output texture:
-	imageStore(imgOutput, ivec3(gl_GlobalInvocationID), vec4(lighting * scattering, scattering * absorption));
+	imageStore(imgOutput, ivec3(gl_GlobalInvocationID), vec4(lighting * scattering, scattering + absorption));
 }

@@ -69,7 +69,7 @@ void App::run()
 
 		// Input:
 		processInput(m_window, m_dt);
-		update();
+		update(m_dt);
 
 		// Rendering:
 		render();
@@ -144,10 +144,14 @@ void App::processInput(GLFWwindow* window, float dt)
 		}
 }
 
-void App::update()
+void App::update(float dt)
 {
 	m_planet.setPosition(m_planetPosition);
 	m_planet.scale(2.0f);
+
+	m_light.setPosition(m_pointLightPosition);
+	m_lightCubeWorld = glm::translate(glm::mat4(1.0f), m_pointLightPosition);
+	m_lightCubeWorld = glm::scale(m_lightCubeWorld, glm::vec3(0.25f));
 
 	// Set shader uniforms:
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, m_uniformUpdateText.size(), m_uniformUpdateText.c_str());
@@ -160,11 +164,19 @@ void App::update()
 		m_fogScatterAbsorbShader.setVec3("u_scatteringCoefficient", m_fogScattering);
 		m_fogScatterAbsorbShader.setVec3("u_absorptionCoefficient", m_fogAbsorption);
 		m_fogScatterAbsorbShader.setFloat("u_phaseGParam", m_fogPhaseGParam);
+		m_fogScatterAbsorbShader.setFloat("u_fogDensity", m_fogDensity);
+		m_fogScatterAbsorbShader.setFloat("u_lightIntensity", m_lightIntensity);
 
 		m_fogScatterAbsorbShader.setFloat("u_noiseFreq", m_noiseFreq);
 
+		m_noiseOffset += m_windDirection * dt;
+		m_fogScatterAbsorbShader.setVec3("u_noiseOffset", m_noiseOffset);
+
 		m_fogScatterAbsorbShader.setPointLight("u_pointLights[0]", m_light);
 		m_fogScatterAbsorbShader.setInt("u_numLights", 1);
+
+		m_fogCompositeShader.use();
+		m_fogCompositeShader.setFloat("u_farPlane", m_farPlane);
 	}
 	glPopDebugGroup();
 
@@ -210,6 +222,19 @@ void App::render()
 			Renderer::drawInstanced(m_rock, m_instanceDepthShader, c_asteroidsCount);
 		}
 		glPopDebugGroup();
+
+		{
+			m_depthShader.use();
+			m_depthShader.setMat4("world", m_planeWorld);
+			Renderer::draw(m_planeVAO, 6, m_depthShader);
+		}
+
+		{
+			glDisable(GL_CULL_FACE);
+			m_depthShader.setMat4("world", m_lightCubeWorld);
+			Renderer::draw(m_lightCubeVAO, 36, m_depthShader);
+			glEnable(GL_CULL_FACE);
+		}
 	}
 	glPopDebugGroup();
 
@@ -228,6 +253,19 @@ void App::render()
 			Renderer::drawInstanced(m_rock, m_instanceShader, c_asteroidsCount);
 		}
 		glPopDebugGroup();
+
+		{
+			m_shader.use();
+			m_shader.setMat4("world", m_planeWorld);
+			Renderer::draw(m_planeVAO, 6, m_shader);
+		}
+
+		{
+			glDisable(GL_CULL_FACE);
+			m_shader.setMat4("world", m_lightCubeWorld);
+			Renderer::draw(m_lightCubeVAO, 36, m_shader);
+			glEnable(GL_CULL_FACE);
+		}
 	}
 	glPopDebugGroup();
 
@@ -246,7 +284,7 @@ void App::render()
 
 		// Render fullscreen quad, applying accumulated fog if desired:
 		m_applyFog ? FogRenderer::compositeFog(m_fullscreenQuadVAO, m_FBOColourBuffer, m_FBODepthBuffer, m_fogAccumTex, m_fogCompositeShader)
-			: Renderer::drawFBO(m_fullscreenQuadVAO, m_fullscreenShader, *m_currentOutputBuffer);
+				   : Renderer::drawFBO(m_fullscreenQuadVAO, m_fullscreenShader, *m_currentOutputBuffer);
 	}
 	glPopDebugGroup();
 
@@ -270,24 +308,23 @@ void App::gui()
 		ImGui::Checkbox("Output depth", &m_outputDepth);
 		ImGui::Checkbox("Apply fog", &m_applyFog);
 
-		ImGui::SliderFloat3("Planet position", &m_planetPosition.x, -10.f, 10.f);
+		ImGui::DragFloat3("Planet position", &m_planetPosition.x, 0.1f);
 
-		if (ImGui::CollapsingHeader("Raymarching parameters"))
-		{
-			ImGui::SliderFloat("Smooth minimum", &m_raymarchKParam, 0.001f, 3.f);
-		}
 		if (ImGui::CollapsingHeader("Fog parameters"))
 		{
 			ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
+			ImGui::SliderFloat3("Wind direction", &m_windDirection.x, -1.0, 1.0f);
 			ImGui::SliderFloat3("Fog albedo", &m_fogAlbedo.x, 0.0f, 1.0f);
 			ImGui::SliderFloat3("Fog scattering", &m_fogScattering.x, 0.0f, 1.0f);
 			ImGui::SliderFloat3("Fog absorption", &m_fogAbsorption.x, 0.0f, 1.0f);
-			ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -1.0f, 1.0f);
+			ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
+			ImGui::SliderFloat("Fog density (homogeneous)", &m_fogDensity, 0.0f, 1.0f);
 		}
 		if (ImGui::CollapsingHeader("Light parameters"))
 		{
 			ImGui::SliderFloat3("Light position", &m_pointLightPosition.r, -10.0f, 10.0f);
 			ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse.r, 0.0f, 1.0f);
+			ImGui::SliderFloat("Light intensity", &m_lightIntensity, 0.0f, 3.0f);
 			ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
 			ImGui::SliderFloat("Light linear", &m_pointLightLinear, 0.0f, 1.0f);
 			ImGui::SliderFloat("Light quadratic", &m_pointLightQuadratic, 0.0f, 1.0f);
@@ -303,8 +340,12 @@ void App::gui()
 
 void App::setupMatrices()
 {
+	m_planeWorld = glm::mat4(1.0f);
+	m_planeWorld = glm::translate(m_planeWorld, glm::vec3(0.0f, -10.0f, 0.0f));
+	m_planeWorld = glm::scale(m_planeWorld, glm::vec3(20.0f, 1.0f, 20.0f));
+
 	// Setup projection matrix:
-	m_proj = glm::perspective(glm::radians(45.0f), (float)m_winWidth / (float)m_winHeight, 0.1f, 150.f);
+	m_proj = glm::perspective(glm::radians(45.0f), (float)m_winWidth / (float)m_winHeight, m_nearPlane, m_farPlane);
 
 	// Setup instanced asteroid matrices:
 	const float radius = 50.0f, offset = 2.5f;
@@ -323,6 +364,7 @@ void App::setupMatrices()
 
 		displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
 		float z = cos(angle) * radius + displacement;
+
 		glm::mat4 world = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
 
 		// Randomise scale in the range (0.05, 0.25):
@@ -406,7 +448,7 @@ void App::setupModelsAndTextures()
 	// Load models:
 	m_planet.loadModel("models/planet/planet.obj");
 	m_rock.loadModel("models/rock/rock.obj");
-	m_planetPosition = glm::vec3(0.0f, -3.0f, 0.0f);
+	m_planetPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	// Create and bind VAO and VBO for fullscreen quad:
 	float fullscreenCoords[] = {
@@ -420,6 +462,51 @@ void App::setupModelsAndTextures()
 		 1.0f, -1.0f,  1.0f, 0.0f,
 		 1.0f,  1.0f,  1.0f, 1.0f
 	};
+	float cubeVertices[] = {
+		// positions          // normals           // texture coords
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+	};
+
 	glGenVertexArrays(1, &m_fullscreenQuadVAO);
 	glBindVertexArray(m_fullscreenQuadVAO);
 
@@ -427,14 +514,51 @@ void App::setupModelsAndTextures()
 	glBindBuffer(GL_ARRAY_BUFFER, m_fullscreenQuadVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(fullscreenCoords), fullscreenCoords, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);					// aPos
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));	// aNormal
 	glEnableVertexAttribArray(1);
+
+	float planeVertices[] = {
+		// Positions			// Tex Coords
+		 5.0f, 0.0f,-5.0f,		2.0f, 0.0f,
+		-5.0f, 0.0f,-5.0f,		0.0f, 0.0f,
+		-5.0f, 0.0f, 5.0f,		0.0f, 2.0f,
+
+		-5.0f, 0.0f, 5.0f,		0.0f, 2.0f,
+		 5.0f, 0.0f, 5.0f,		2.0f, 2.0f,
+		 5.0f, 0.0f,-5.0f,		2.0f, 0.0f
+	};
+	glGenVertexArrays(1, &m_planeVAO);
+	glBindVertexArray(m_planeVAO);
+
+	glGenBuffers(1, &m_planeVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_planeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);					// aPos
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));	// aTexCoords
+	glEnableVertexAttribArray(1);
+
+	glGenVertexArrays(1, &m_lightCubeVAO);
+	glBindVertexArray(m_lightCubeVAO);
+
+	glGenBuffers(1, &m_lightCubeVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_lightCubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);					// aPos
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));	// aNormal
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));	// aTexCoords
+	glEnableVertexAttribArray(2);
+
+	m_testQuadVAO.setData(fullscreenCoords, sizeof(fullscreenCoords), VAO::Format::POS2_TEX2);
 
 	// Load/create textures:
 	m_rockTex = loadTexture("models/rock/rock.png");
-	m_raymarchTex = createTexture(1280, 720);
 	m_fogScatterAbsorbTex = createTexture(c_fogTexSize);
 	m_fogAccumTex = createTexture(c_fogTexSize);
 }

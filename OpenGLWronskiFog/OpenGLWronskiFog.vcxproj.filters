@@ -135,4 +135,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\depthShader.frag" />
+    <None Include="shaders\depthShader.vert" />
+    <None Include="shaders\fogAccumulationShader.comp" />
+    <None Include="shaders\fogCompositeShader.frag" />
+    <None Include="shaders\fogScatterAbsorbShader.comp" />
+    <None Include="shaders\fullscreenShader.frag" />
+    <None Include="shaders\fullscreenShader.vert" />
+    <None Include="shaders\instancedShader.vert" />
+    <None Include="shaders\passthroughShader.comp" />
+    <None Include="shaders\singleColour.frag" />
+    <None Include="shaders\textureShader.frag" />
+    <None Include="shaders\textureShader.vert" />
+  </ItemGroup>
 </Project>

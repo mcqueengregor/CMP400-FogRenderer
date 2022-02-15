@@ -14,6 +14,7 @@ vec4 accumulateScattering(vec4 currentSlice, vec4 nextSlice)
 
 void outputResults(ivec3 writePos, vec4 outputVal)
 {
+	// Write final light values to texture. RGB is in-scattered light accumulated so far, alpha is scene light extinction from out-scattering:
 	vec4 finalVal = vec4(outputVal.rgb, exp(-outputVal.a));
 	imageStore(imgOutput, writePos, finalVal);
 }
@@ -25,15 +26,17 @@ void main()
 
 	// Write data from first slice of input texture into first slice of output texture:
 	imageStore(imgOutput, ivec3(gl_GlobalInvocationID.xy, 0.0), currentSliceVal);
-	uint texDepth = imageSize(imgInput).z;
+	const uint texDepth = 64;
 
 	// Accumulate scattering and transmittance for each texture slice:
 	for (uint z = 1; z < texDepth; ++z)
 	{
+		const ivec3 coords = ivec3(gl_GlobalInvocationID.xy, z);
+
 		// Read scattering and extinction values from input 3D texture:
-		vec4 nextSliceVal = imageLoad(imgInput, ivec3(gl_GlobalInvocationID.xy, z));
+		vec4 nextSliceVal = imageLoad(imgInput, coords);
 		currentSliceVal = accumulateScattering(currentSliceVal, nextSliceVal);
 		
-		outputResults(ivec3(gl_GlobalInvocationID), currentSliceVal);
+		outputResults(coords, currentSliceVal);
 	}
 }

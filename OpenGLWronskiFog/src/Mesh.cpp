@@ -37,8 +37,8 @@ void Mesh::draw(const Shader& shader) const
 
 void Mesh::setupMesh()
 {
-	//m_VAO.setData(m_vertices);
-	//m_EBO.setData(m_indices.data(), m_indices.size() * sizeof(GLuint));
+	m_VAO.setData(m_vertices);
+	m_EBO.setData(m_indices.data(), m_indices.size() * sizeof(GLuint));
 
 	GLCALL(glGenVertexArrays(1, &m_vao));
 	GLCALL(glGenBuffers(1, &m_ebo));
