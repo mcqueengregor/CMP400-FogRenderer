@@ -37,7 +37,7 @@ public:
 
 private:
 	void processInput(GLFWwindow* window, float dt);
-	void update(float dt);
+	void update();
 	void render();
 	void gui();
 
@@ -73,11 +73,12 @@ private:
 
 	// Misc shader data (uniforms and dispatch group sizes):
 	const glm::uvec3	c_fogNumWorkGroups  = glm::uvec3(1, 10, 64);	// Local work group size is (160, 9, 1) for a 160x90x64 texture
-	glm::vec3			m_fogScattering		= glm::vec3(1.0f);
-	glm::vec3			m_fogAbsorption		= glm::vec3(1.0f);
+	float				m_fogScattering		= 1.0f;
+	float				m_fogAbsorption		= 1.0f;
 	glm::vec3			m_fogAlbedo			= glm::vec3(1.0f);
 	float				m_fogPhaseGParam	= 0.0f;
 	float				m_fogDensity		= 0.05f;
+	bool				m_heterogeneousFog	= true;		// 'true' means use heterogeneous density with single-octave noise, 'false' means use homogeneous density.
 
 	float				m_noiseFreq			= 0.4f;
 	glm::vec3			m_noiseOffset		= glm::vec3(0.0f);
