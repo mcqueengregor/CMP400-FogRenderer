@@ -99,6 +99,18 @@ public:
 		glBindVertexArray(0);
 	}
 
+	// **TODO: Finish shadowmap render function here which will bind the appropriate FBO, change the viewport size,
+	//		   update shader uniforms and render results to bound FBO:
+	static void drawShadowmap(const Model& model, const Shader& shader, glm::vec2 shadowmapDim, GLuint clearFlags)
+	{
+		glViewport(0, 0, shadowmapDim.x, shadowmapDim.y);
+
+		// (FBO should be bound using Renderer::setTarget)
+		glClear(clearFlags);
+
+
+	}
+
 	static inline void clear()
 	{
 		glClearColor(0.2f, 0.3f, 0.3f, 1.f);
