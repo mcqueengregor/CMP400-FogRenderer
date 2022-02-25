@@ -57,6 +57,9 @@
     <ClCompile Include="Dependencies\include\glad4.3\glad4.3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\App.h">
@@ -148,5 +151,8 @@
     <None Include="shaders\singleColour.frag" />
     <None Include="shaders\textureShader.frag" />
     <None Include="shaders\textureShader.vert" />
+    <None Include="shaders\varianceShadowShader.frag" />
+    <None Include="shaders\shadowShader.vert" />
+    <None Include="shaders\singleColourShader.frag" />
   </ItemGroup>
 </Project>

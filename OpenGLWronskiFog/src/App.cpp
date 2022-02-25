@@ -131,7 +131,7 @@ void App::processInput(GLFWwindow* window, float dt)
 			// Store cursor's original window position and disable cursor (lock to window centre and hide):
 			m_hasRightClicked = true;
 			glfwGetCursorPos(window, &m_originalCursorPosX, &m_originalCursorPosY);
-			glfwSetCursorPos(window, m_winWidth / 2, m_winHeight / 2);
+			glfwSetCursorPos(window, m_windowDim.x / 2, m_windowDim.y / 2);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
 	}
@@ -183,6 +183,15 @@ void App::update(float dt)
 	}
 	glPopDebugGroup();
 
+	glm::mat4 lightProj = glm::perspective(glm::radians(90.0f), 1.0f, m_lightViewPlanes.x, m_lightViewPlanes.y);
+
+	m_lightSpaceMat[0] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Right	(+ve x)
+	m_lightSpaceMat[1] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Left		(-ve x)
+	m_lightSpaceMat[2] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f));	// Up		(+ve y)
+	m_lightSpaceMat[3] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f));	// Down		(-ve y)
+	m_lightSpaceMat[4] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Forward	(+ve z)
+	m_lightSpaceMat[5] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Back		(-ve z)
+
 	// Set which buffer to output:
 	m_currentOutputBuffer = m_outputDepth ? &m_FBODepthBuffer : &m_FBOColourBuffer;
 }
@@ -191,6 +200,47 @@ void App::render()
 {
 	// Set view matrix in UBO:
 	glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(m_camera.getViewMat()));
+
+	// SHADOWMAP PASS:
+	Renderer::pushDebugGroup(m_shadowmapPassText);
+	{
+		Renderer::setViewport(c_shadowmapDim);
+
+		m_varianceShadowmapShader.use();
+		m_varianceShadowmapShader.setFloat("farPlane", m_lightViewPlanes.y);
+		m_varianceShadowmapShader.setVec3("lightPos", m_pointLightPosition);
+
+		// Render to each shadowmap direction:
+		for (int i = 0; i < 6; ++i)
+		{
+			// Set shadowmap FBO:
+			Renderer::setTarget(m_pointShadowmapFBOs[i]);
+			Renderer::clear(1.0f, 1.0f, 0.0f, 1.0f, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			m_varianceShadowmapShader.setMat4("lightSpaceMat", m_lightSpaceMat[i]);
+
+			Renderer::pushDebugGroup(m_planetRenderText);
+			{
+				Renderer::drawShadowmap(m_planet, m_varianceShadowmapShader);
+			}
+			Renderer::popDebugGroup();
+
+			Renderer::pushDebugGroup(m_asteroidRenderText);
+			{
+				Renderer::drawInstanced(m_rock, m_varianceShadowmapShader, c_asteroidsCount);
+			}
+			Renderer::popDebugGroup();
+
+			Renderer::pushDebugGroup(m_planeRenderText);
+			{
+				m_varianceShadowmapShader.setMat4("world", m_planeWorld);
+				Renderer::draw(m_planeVAO, 6, m_varianceShadowmapShader);
+			}
+			Renderer::popDebugGroup();
+		}
+		Renderer::setViewport(m_windowDim);
+	}
+	Renderer::popDebugGroup();
 
 	// Dispatch fog scattering and absorption evaluation compute shader:
 	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
@@ -214,7 +264,7 @@ void App::render()
 	Renderer::pushDebugGroup(m_depthPassText);
 	{
 		Renderer::setTarget(m_fullscreenDepthFBO);
-		Renderer::clear(1.0, 1.0, 1.0, 1.0);
+		Renderer::clear(1.0, 1.0, 1.0, 1.0, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		Renderer::pushDebugGroup(m_planetRenderText);
 		{
 			Renderer::draw(m_planet, m_depthShader);
@@ -227,26 +277,30 @@ void App::render()
 		}
 		Renderer::popDebugGroup();
 
+		Renderer::pushDebugGroup(m_planeRenderText);
 		{
 			m_depthShader.use();
 			m_depthShader.setMat4("world", m_planeWorld);
 			Renderer::draw(m_planeVAO, 6, m_depthShader);
 		}
+		Renderer::popDebugGroup();
 
+		Renderer::pushDebugGroup(m_debugRenderText);
 		{
 			glDisable(GL_CULL_FACE);
 			m_depthShader.setMat4("world", m_lightCubeWorld);
 			Renderer::draw(m_lightCubeVAO, 36, m_depthShader);
 			glEnable(GL_CULL_FACE);
 		}
+		Renderer::popDebugGroup();
 	}
-	glPopDebugGroup();
+	Renderer::popDebugGroup();
 
 	// COLOUR PASS:
 	Renderer::pushDebugGroup(m_colourPassText);
 	{
 		Renderer::setTarget(m_fullscreenColourFBO);
-		Renderer::clear();
+		Renderer::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		Renderer::pushDebugGroup(m_planetRenderText);
 		{
 			Renderer::draw(m_planet, m_shader);
@@ -259,18 +313,22 @@ void App::render()
 		}
 		Renderer::popDebugGroup();
 
+		Renderer::pushDebugGroup(m_planeRenderText);
 		{
 			m_shader.use();
 			m_shader.setMat4("world", m_planeWorld);
 			Renderer::draw(m_planeVAO, 6, m_shader);
 		}
+		Renderer::popDebugGroup();
 
+		Renderer::pushDebugGroup(m_debugRenderText);
 		{
 			glDisable(GL_CULL_FACE);
 			m_shader.setMat4("world", m_lightCubeWorld);
 			Renderer::draw(m_lightCubeVAO, 36, m_shader);
 			glEnable(GL_CULL_FACE);
 		}
+		Renderer::popDebugGroup();
 	}
 	Renderer::popDebugGroup();
 
@@ -282,16 +340,16 @@ void App::render()
 		Renderer::setWireframe(false);
 
 	// Composite fog onto final render (fragment shader):
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, m_fogCompositionText.size(), m_fogCompositionText.c_str());
+	Renderer::pushDebugGroup(m_fogCompositionText);
 	{
 		Renderer::resetTarget();
-		Renderer::clear();
+		Renderer::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Render fullscreen quad, applying accumulated fog if desired:
 		m_applyFog ? FogRenderer::compositeFog(m_fullscreenQuadVAO, m_FBOColourBuffer, m_FBODepthBuffer, m_fogAccumTex, m_fogCompositeShader)
 				   : Renderer::drawFBO(m_fullscreenQuadVAO, m_fullscreenShader, *m_currentOutputBuffer);
 	}
-	glPopDebugGroup();
+	Renderer::popDebugGroup();
 
 	// Restore wireframe mode to on:
 	if (m_wireframe)
@@ -351,7 +409,7 @@ void App::setupMatrices()
 	m_planeWorld = glm::scale(m_planeWorld, glm::vec3(20.0f, 1.0f, 20.0f));
 
 	// Setup projection matrix:
-	m_proj = glm::perspective(glm::radians(45.0f), (float)m_winWidth / (float)m_winHeight, m_nearPlane, m_farPlane);
+	m_proj = glm::perspective(glm::radians(45.0f), (float)m_windowDim.x / (float)m_windowDim.y, m_nearPlane, m_farPlane);
 
 	// Setup instanced asteroid matrices:
 	const float radius = 50.0f, offset = 2.5f;
@@ -425,6 +483,7 @@ void App::setupShaders()
 	m_fogScatterAbsorbShader.loadShader("shaders/fogScatterAbsorbShader.comp");
 	m_fogAccumShader.loadShader("shaders/fogAccumulationShader.comp");
 	m_fogCompositeShader.loadShader("shaders/fullscreenShader.vert", "shaders/fogCompositeShader.frag");
+	m_varianceShadowmapShader.loadShader("shaders/shadowShader.vert", "shaders/varianceShadowShader.frag");
 
 	m_fogCompositeShader.use();
 	m_fogCompositeShader.setInt("u_colourTex", 0);
@@ -445,8 +504,11 @@ void App::setupUBOs()
 
 void App::setupFBOs()
 {
-	m_fullscreenColourFBO = createFBO(m_winWidth, m_winHeight, m_FBOColourBuffer);
-	m_fullscreenDepthFBO = createFBO(m_winWidth, m_winHeight, m_FBODepthBuffer);
+	m_fullscreenColourFBO = createFBO(m_windowDim, m_FBOColourBuffer);
+	m_fullscreenDepthFBO = createFBO(m_windowDim, m_FBODepthBuffer);
+
+	for (int i = 0; i < 6; ++i)
+		m_pointShadowmapFBOs[i] = createShadowmap(c_shadowmapDim, m_pointShadowmapColourBuffers[i], m_pointShadowmapDepthBuffers[i]);
 }
 
 void App::setupModelsAndTextures()
@@ -571,7 +633,7 @@ void App::setupModelsAndTextures()
 
 GLFWwindow* App::initWindow()
 {
-	GLFWwindow* newWindow = glfwCreateWindow(m_winWidth, m_winHeight, "WronskiFog", NULL, NULL);	// Window object, for holding all window data.
+	GLFWwindow* newWindow = glfwCreateWindow(m_windowDim.x, m_windowDim.y, "WronskiFog", NULL, NULL);	// Window object, for holding all window data.
 
 	// If the window creation failed, output error message and end program:
 	if (newWindow == NULL) {
@@ -591,7 +653,7 @@ GLFWwindow* App::initWindow()
 	std::cout << "Successfully initialised GLAD!\nOpenGL version: "
 		<< glGetString(GL_VERSION) << "\n\n";
 
-	glViewport(0, 0, m_winWidth, m_winHeight);
+	glViewport(0, 0, m_windowDim.x, m_windowDim.y);
 
 	return newWindow;
 }
@@ -711,7 +773,7 @@ GLuint App::createTexture(glm::uvec3 dim)
 	return newTex;
 }
 
-GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTexBuffer)
+GLuint App::createFBO(glm::uvec2 dim, GLuint& colourTexBuffer)
 {
 	// Generate and bind new FBO:
 	GLuint newFBO;
@@ -721,7 +783,7 @@ GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTex
 	// Generate colour texture attachment:
 	glGenTextures(1, &colourTexBuffer);
 	glBindTexture(GL_TEXTURE_2D, colourTexBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (float)bufferWidth, (float)bufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dim.x, dim.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -733,7 +795,7 @@ GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTex
 	GLuint RBO;
 	glGenRenderbuffers(1, &RBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_winWidth, m_winHeight);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, dim.x, dim.y);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	// Bind RBO to new FBO, check for completeness:
@@ -749,7 +811,7 @@ GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTex
 	return newFBO;
 }
 
-GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTexBuffer, GLuint& depthTexBuffer)
+GLuint App::createFBO(glm::uvec2 dim, GLuint& colourTexBuffer, GLuint& depthTexBuffer)
 {
 	// Generate and bind new FBO:
 	GLuint newFBO;
@@ -759,7 +821,7 @@ GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTex
 	// Generate colour texture attachment:
 	glGenTextures(1, &colourTexBuffer);
 	glBindTexture(GL_TEXTURE_2D, colourTexBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (float)bufferWidth, (float)bufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dim.x, dim.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -770,19 +832,19 @@ GLuint App::createFBO(GLuint bufferWidth, GLuint bufferHeight, GLuint& colourTex
 	// Generate depth texture attachment:
 	glGenTextures(1, &depthTexBuffer);
 	glBindTexture(GL_TEXTURE_2D, depthTexBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (float)bufferWidth, (float)bufferHeight, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, dim.x, dim.y, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	// Attach depth texture to FBO:
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, colourTexBuffer, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexBuffer, 0);
 
 	// Generate and bind RBO to new FBO:
 	GLuint RBO;
 	glGenRenderbuffers(1, &RBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_winWidth, m_winHeight);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, dim.x, dim.x);
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	// Bind RBO to new FBO, check for completeness:
@@ -814,4 +876,42 @@ GLuint App::createUBO(size_t size, GLuint index, GLuint offset)
 	std::cout << "Successfully created new UBO! (" << size << " bytes)" << std::endl;
 
 	return newUBO;
+}
+
+GLuint App::createShadowmap(glm::uvec2 shadowmapDim, GLuint& colourTexBuffer, GLuint& depthTexBuffer)
+{
+	// Generate and bind FBO:
+	GLuint newFBO;
+	glGenFramebuffers(1, &newFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, newFBO);
+
+	// Generate and bind colour buffer:
+	glGenTextures(1, &colourTexBuffer);
+	glBindTexture(GL_TEXTURE_2D, colourTexBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, shadowmapDim.x, shadowmapDim.y, 0, GL_RG, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// Attach colour buffer:
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colourTexBuffer, 0);
+
+	// As above, for depth buffer:
+	glGenTextures(1, &depthTexBuffer);
+	glBindTexture(GL_TEXTURE_2D, depthTexBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowmapDim.x, shadowmapDim.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexBuffer, 0);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "FRAMEBUFFER NOT COMPLETE" << std::endl;
+	else
+		std::cout << "Successfully created new  FBO!" << std::endl;
+
+	return newFBO;
 }

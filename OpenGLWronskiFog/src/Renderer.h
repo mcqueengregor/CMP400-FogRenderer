@@ -99,12 +99,10 @@ public:
 		glBindVertexArray(0);
 	}
 
-	// **TODO: Finish shadowmap render function here which will bind the appropriate FBO, change the viewport size,
-	//		   update shader uniforms and render results to bound FBO:
-	static void drawShadowmap(const Model& model, const Shader& shader, glm::vec2 shadowmapDim, GLuint clearFlags)
+	static void drawShadowmap(const Model& model, const Shader& shader)
 	{
-		glViewport(0, 0, shadowmapDim.x, shadowmapDim.y);
-
+		shader.use();
+		shader.setMat4("world", model.getWorldMat());
 		for (const auto& mesh : model.m_meshes)
 		{
 			GLCALL(glBindVertexArray(mesh.m_vao));
@@ -114,22 +112,35 @@ public:
 		glBindVertexArray(0);
 	}
 
-	static inline void clear()
+	static void drawShadowmapInstanced(const Model& model, const Shader& shader, const int instanceCount)
+	{
+		shader.use();
+		shader.setMat4("world", model.getWorldMat());
+		for (const auto& mesh : model.m_meshes)
+		{
+			GLCALL(glBindVertexArray(mesh.m_vao));
+			GLCALL(glDrawElementsInstanced(GL_TRIANGLES, mesh.m_indices.size(), GL_UNSIGNED_INT, 0, instanceCount));
+		}
+
+		glBindVertexArray(0);
+	}
+
+	static inline void clear(GLuint clearFlags)
 	{
 		glClearColor(0.2f, 0.3f, 0.3f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		glClear(clearFlags);
 	}
 
-	static inline void clear(glm::vec4 clearColour)
+	static inline void clear(glm::vec4 clearColour, GLuint clearFlags)
 	{
-		glClearColor(clearColour.r, clearColour.b, clearColour.b, clearColour.a);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		glClearColor(clearColour.r, clearColour.g, clearColour.b, clearColour.a);
+		glClear(clearFlags);
 	}
 
-	static inline void clear(float r, float g, float b, float a)
+	static inline void clear(float r, float g, float b, float a, GLuint clearFlags)
 	{
-		glClearColor(r, b, b, a);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		glClearColor(r, g, b, a);
+		glClear(clearFlags);
 	}
 
 	static void setTarget(GLuint fbo)
@@ -142,7 +153,7 @@ public:
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	static void setViewport(glm::vec2 dim)
+	static void setViewport(glm::uvec2 dim)
 	{
 		glViewport(0, 0, dim.x, dim.y);
 	}
@@ -154,12 +165,14 @@ public:
 
 	static inline void pushDebugGroup(const std::string debugString)
 	{
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, debugString.size(), debugString.c_str());
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, s_debugGroupCount, debugString.size(), debugString.c_str());
+		++s_debugGroupCount;
 	}
 
 	static inline void popDebugGroup()
 	{
 		glPopDebugGroup();
+		--s_debugGroupCount;
 	}
 
 public:

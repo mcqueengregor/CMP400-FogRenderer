@@ -1,48 +1,37 @@
 ﻿  App.cpp
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Model.h(189,1): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(21,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(30,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(35,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(71,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(80,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(85,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(106,48): warning C4244: 'argument': conversion from 'T' to 'GLsizei', possible loss of data
-          with
-          [
-              T=float
-          ]
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(106,32): warning C4244: 'argument': conversion from 'T' to 'GLsizei', possible loss of data
-          with
-          [
-              T=float
-          ]
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(111,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(147,30): warning C4244: 'argument': conversion from 'T' to 'GLsizei', possible loss of data
-          with
-          [
-              T=float
-          ]
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(147,23): warning C4244: 'argument': conversion from 'T' to 'GLsizei', possible loss of data
-          with
-          [
-              T=float
-          ]
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(157,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(68,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(159,106): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(285,108): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(303,96): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(381,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(398,73): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(400,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(402,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(404,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(588,19): warning C4150: deletion of pointer to incomplete type 'GLFWwindow'; no destructor called
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\GLFW\glfw3.h(1157): message : see declaration of 'GLFWwindow'
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(724,68): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(724,48): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(762,68): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(762,48): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(773,68): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(773,48): warning C4244: 'argument': conversion from 'float' to 'GLsizei', possible loss of data
-  OpenGLWronskiFog.vcxproj -> C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\x64\Debug\OpenGLWronskiFog.exe
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Model.h(189,1): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(21,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(30,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(35,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(71,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(80,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(85,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(109,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(122,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(168,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(68,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(159,106): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(361,96): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(439,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(456,73): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(458,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(460,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(462,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(650,19): warning C4150: deletion of pointer to incomplete type 'GLFWwindow'; no destructor called
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\GLFW\glfw3.h(1157): message : see declaration of 'GLFWwindow'
+glfw3.lib(context.obj) : warning LNK4099: PDB '' was not found with 'glfw3.lib(context.obj)' or at ''; linking object as if no debug info
+glfw3.lib(init.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(init.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(input.obj) : warning LNK4099: PDB '' was not found with 'glfw3.lib(input.obj)' or at ''; linking object as if no debug info
+glfw3.lib(monitor.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(monitor.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(vulkan.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(vulkan.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(window.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(window.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(win32_init.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_init.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(win32_joystick.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_joystick.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(win32_monitor.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_monitor.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(win32_time.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_time.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(win32_thread.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_thread.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(win32_window.obj) : warning LNK4099: PDB '' was not found with 'glfw3.lib(win32_window.obj)' or at ''; linking object as if no debug info
+glfw3.lib(wgl_context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(wgl_context.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(egl_context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(egl_context.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(osmesa_context.obj) : warning LNK4099: PDB '' was not found with 'glfw3.lib(osmesa_context.obj)' or at ''; linking object as if no debug info
+  OpenGLWronskiFog.vcxproj -> \\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\OpenGLWronskiFog.exe
