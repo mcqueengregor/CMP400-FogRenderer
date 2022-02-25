@@ -72,17 +72,17 @@ private:
 	Shader m_fogCompositeShader;		// Fullscreen rendering, combining fog and opaque geometry rendering results (VS/FS).
 
 	// Misc shader data (uniforms and dispatch group sizes):
-	const glm::uvec3	c_fogNumWorkGroups  = glm::uvec3(1, 10, 64);	// Local work group size is (160, 9, 1) for a 160x90x64 texture
-	float				m_fogScattering		= 1.0f;
-	float				m_fogAbsorption		= 1.0f;
-	glm::vec3			m_fogAlbedo			= glm::vec3(1.0f);
-	float				m_fogPhaseGParam	= 0.0f;
-	float				m_fogDensity		= 0.05f;
-	bool				m_useHeterogeneousFog = true;
+	const glm::uvec3	c_fogNumWorkGroups		= glm::uvec3(1, 10, 64);	// Local work group size is (160, 9, 1) for a 160x90x64 texture
+	float				m_fogScattering			= 1.0f;
+	float				m_fogAbsorption			= 1.0f;
+	glm::vec3			m_fogAlbedo				= glm::vec3(1.0f);
+	float				m_fogPhaseGParam		= 0.85f;
+	float				m_fogDensity			= 0.03f;
+	bool				m_useHeterogeneousFog	= true;
 
-	float				m_noiseFreq			= 0.4f;
-	glm::vec3			m_noiseOffset		= glm::vec3(0.0f);
-	glm::vec3			m_windDirection		= glm::vec3(0.0f, 0.0f, 0.0f);
+	float				m_noiseFreq				= 0.15f;
+	glm::vec3			m_noiseOffset			= glm::vec3(0.0f);
+	glm::vec3			m_windDirection			= glm::vec3(1.0f, 0.0f, 0.0f);
 
 	// Lights:
 	PointLight m_light;
@@ -136,8 +136,8 @@ private:
 
 	// Misc model/texture data:
 	glm::vec3		 m_planetPosition;
-	const GLuint	 c_asteroidsCount = 10000;
-	const glm::uvec3 c_fogTexSize = glm::uvec3(160, 90, 64);
+	const GLuint	 c_asteroidsCount	= 10000;
+	const glm::uvec3 c_fogTexSize		= glm::uvec3(160, 90, 64);
 
 	// Matrices:
 	glm::mat4 m_proj;

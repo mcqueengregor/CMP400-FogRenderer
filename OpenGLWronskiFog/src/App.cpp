@@ -45,6 +45,8 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 	ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
+	Renderer::s_debugGroupCount;
+
 	return true;
 }
 
@@ -191,38 +193,39 @@ void App::render()
 	glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(m_camera.getViewMat()));
 
 	// Dispatch fog scattering and absorption evaluation compute shader:
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, m_fogScatterAbsorbText.size(), m_fogScatterAbsorbText.c_str());
+	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
 	{
 		FogRenderer::bindTex(1, m_fogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 	}
-	glPopDebugGroup();
+	Renderer::popDebugGroup();
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	// Dispatch fog accumulation compute shader:
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, m_fogAccumText.size(), m_fogAccumText.c_str());
+	Renderer::pushDebugGroup(m_fogAccumText);
 	{
 		FogRenderer::bindTex(2, m_fogScatterAbsorbTex, GL_READ_ONLY, GL_RGBA32F);
 		FogRenderer::bindTex(3, m_fogAccumTex, GL_WRITE_ONLY, GL_RGBA32F);
 		FogRenderer::dispatch(c_fogNumWorkGroups.x, c_fogNumWorkGroups.y, 1, m_fogAccumShader);
 	}
-	glPopDebugGroup();
+	Renderer::popDebugGroup();
 
 	// DEPTH PASS:
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, m_depthPassText.size(), m_depthPassText.c_str());
+	Renderer::pushDebugGroup(m_depthPassText);
 	{
 		Renderer::setTarget(m_fullscreenDepthFBO);
 		Renderer::clear(1.0, 1.0, 1.0, 1.0);
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, m_planetRenderText.size(), m_planetRenderText.c_str());
+		Renderer::pushDebugGroup(m_planetRenderText);
 		{
 			Renderer::draw(m_planet, m_depthShader);
 		}
-		glPopDebugGroup();
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, m_asteroidRenderText.size(), m_asteroidRenderText.c_str());
+		Renderer::popDebugGroup();
+
+		Renderer::pushDebugGroup(m_asteroidRenderText);
 		{
 			Renderer::drawInstanced(m_rock, m_instanceDepthShader, c_asteroidsCount);
 		}
-		glPopDebugGroup();
+		Renderer::popDebugGroup();
 
 		{
 			m_depthShader.use();
@@ -240,20 +243,21 @@ void App::render()
 	glPopDebugGroup();
 
 	// COLOUR PASS:
-	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, m_colourPassText.size(), m_colourPassText.c_str());
+	Renderer::pushDebugGroup(m_colourPassText);
 	{
 		Renderer::setTarget(m_fullscreenColourFBO);
 		Renderer::clear();
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, m_planetRenderText.size(), m_planetRenderText.c_str());
+		Renderer::pushDebugGroup(m_planetRenderText);
 		{
 			Renderer::draw(m_planet, m_shader);
 		}
-		glPopDebugGroup();
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, m_asteroidRenderText.size(), m_asteroidRenderText.c_str());
+		Renderer::popDebugGroup();
+
+		Renderer::pushDebugGroup(m_asteroidRenderText);
 		{
 			Renderer::drawInstanced(m_rock, m_instanceShader, c_asteroidsCount);
 		}
-		glPopDebugGroup();
+		Renderer::popDebugGroup();
 
 		{
 			m_shader.use();
@@ -268,7 +272,7 @@ void App::render()
 			glEnable(GL_CULL_FACE);
 		}
 	}
-	glPopDebugGroup();
+	Renderer::popDebugGroup();
 
 	// Block image read/write operations:
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);

@@ -105,10 +105,13 @@ public:
 	{
 		glViewport(0, 0, shadowmapDim.x, shadowmapDim.y);
 
-		// (FBO should be bound using Renderer::setTarget)
-		glClear(clearFlags);
+		for (const auto& mesh : model.m_meshes)
+		{
+			GLCALL(glBindVertexArray(mesh.m_vao));
+			GLCALL(glDrawElements(GL_TRIANGLES, mesh.m_indices.size(), GL_UNSIGNED_INT, 0));
+		}
 
-
+		glBindVertexArray(0);
 	}
 
 	static inline void clear()
@@ -139,8 +142,26 @@ public:
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	static void setViewport(glm::vec2 dim)
+	{
+		glViewport(0, 0, dim.x, dim.y);
+	}
+
 	static void setWireframe(bool wireframe)
 	{
 		wireframe ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+
+	static inline void pushDebugGroup(const std::string debugString)
+	{
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, debugString.size(), debugString.c_str());
+	}
+
+	static inline void popDebugGroup()
+	{
+		glPopDebugGroup();
+	}
+
+public:
+	static int s_debugGroupCount;
 };
