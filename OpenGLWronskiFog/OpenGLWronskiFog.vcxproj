@@ -200,6 +200,7 @@
     <None Include="shaders\fullscreenShader.vert" />
     <None Include="shaders\horiBlurArrayShader.frag" />
     <None Include="shaders\instancedShader.vert" />
+    <None Include="shaders\instancedShadowShader.vert" />
     <None Include="shaders\layeredBlurShader.geom" />
     <None Include="shaders\layeredShadowShader.geom" />
     <None Include="shaders\passthroughShader.comp" />
