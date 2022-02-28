@@ -48,6 +48,7 @@ uniform int			u_numLights;
 uniform float		u_lightFarPlane;
 uniform PointLight	u_pointLights[MAX_LIGHTS];
 uniform sampler2DArray u_pointShadowmapArray;
+uniform bool u_useShadows;
 
 // Noise function is from Ken Perlin's Improved Noise implementation: https://cs.nyu.edu/~perlin/noise/
 // Permuation of pseudo-random vector gradients:
@@ -148,7 +149,7 @@ bool outsideShadowmapBounds(vec3 projectedCoords)
 
 float calcShadow(vec3 worldPos)
 {
-	// Iterate through all 
+	// Iterate through all layers of shadowmap texture array:
 	for (int i = 0; i < 6; ++i)
 	{
 		// Transform world position to light space:
@@ -163,8 +164,8 @@ float calcShadow(vec3 worldPos)
 		// If projected position is within light frustum, perform shadow test:
 		if (!outsideShadowmapBounds(projectedCoords))
 		{
-			// Get depth of closest occluder from shadowmap, scaled to [0,farPlane] range:
-			vec2 moments = texture(u_pointShadowmapArray, vec3(projectedCoords.xy, i)).rg;
+			// Get depth of closest occluder from shadowmap, scaled to [0,farPlane (squared)] range:
+			vec2 moments = texture(u_pointShadowmapArray, vec3(projectedCoords.xy, float(i))).rg;
 			moments.x *= u_lightFarPlane;
 			moments.y *= u_lightFarPlane * u_lightFarPlane;
 			
@@ -172,6 +173,9 @@ float calcShadow(vec3 worldPos)
 			float currentDepth = length(lightDir);
 
 			const float bias = 0.05;
+			return currentDepth > moments.x + bias ? 0.0 : 1.0;
+
+			// Ignore variance/exponential shadow test stuff until standard shadows are actually working
 			float p = step(currentDepth, moments.x + bias);
 
 			float variance = max(moments.y - moments.x * moments.x, 0.00002);
@@ -185,6 +189,7 @@ float calcShadow(vec3 worldPos)
 		}
 	}
 
+	// If point isn't within any light frustum, assume it's fully lit:
 	return 1.0;
 }
 
@@ -243,7 +248,12 @@ void main()
 	// Accumulate lighting at this froxel:
 	for (uint i = 0; i < u_numLights; ++i)
 	{
-		lighting += calcPointLight(i, worldPos) * phaseHG(i, worldPos, u_phaseGParam) * calcShadow(worldPos);
+		vec3 light = calcPointLight(i, worldPos) * phaseHG(i, worldPos, u_phaseGParam);
+
+		if (u_useShadows)
+			light *= calcShadow(worldPos);
+
+		lighting += light;
 	}
 
 	// Multiply accumulated lighting by fog albedo colour:
