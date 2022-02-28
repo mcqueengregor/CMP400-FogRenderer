@@ -16,7 +16,7 @@ public:
 	}
 	static void bindTex(const GLuint binding, const GLuint tex, const GLuint access, const GLuint format)
 	{
-		glBindImageTexture(binding, tex, 0, GL_FALSE, 0, access, format);
+		GLCALL(glBindImageTexture(binding, tex, 0, GL_FALSE, 0, access, format));
 	}
 	static void compositeFog(const GLuint vao, const GLuint normalRenderColourTex, const GLuint normalRenderDepthTex, const GLuint fog3DAccumTex, const Shader& shader)
 	{

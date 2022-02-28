@@ -90,11 +90,11 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 	}
 
-	static void drawFBO(const GLuint VAO, const Shader& shader, const GLuint texture)
+	static void drawFBO(const GLuint VAO, const Shader& shader, const GLuint texture, GLenum target)
 	{
 		shader.use();
 		GLCALL(glBindVertexArray(VAO));
-		glBindTexture(GL_TEXTURE_2D, texture);
+		GLCALL(glBindTexture(target, texture));
 		glDrawArrays(GL_TRIANGLES, 0, 6);	// Two-triangle quad expected.
 		glBindVertexArray(0);
 	}

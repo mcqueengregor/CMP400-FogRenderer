@@ -23,6 +23,8 @@ struct PointLight
     float quadratic;
 };
 
+uniform mat4 u_lightMatrices[6];
+
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
 uniform vec3	u_cameraForward;
@@ -43,7 +45,9 @@ uniform vec3	u_noiseOffset;
 
 // Light data uniforms:
 uniform int			u_numLights;
+uniform float		u_lightFarPlane;
 uniform PointLight	u_pointLights[MAX_LIGHTS];
+uniform sampler2DArray u_pointShadowmapArray;
 
 // Noise function is from Ken Perlin's Improved Noise implementation: https://cs.nyu.edu/~perlin/noise/
 // Permuation of pseudo-random vector gradients:
@@ -135,6 +139,55 @@ float getSliceThickness(uint slice)
 	return 0.0;
 }
 
+bool outsideShadowmapBounds(vec3 projectedCoords)
+{
+	// Return whether projected NDC coords are within a light's frustum or not (i.e. if 0 < pCoords < 1):
+	return projectedCoords.x < 0.0 || projectedCoords.x > 1.0 || projectedCoords.y < 0.0 || projectedCoords.y > 1.0
+		|| projectedCoords.z > 1.0;
+}
+
+float calcShadow(vec3 worldPos)
+{
+	// Iterate through all 
+	for (int i = 0; i < 6; ++i)
+	{
+		// Transform world position to light space:
+		vec4 lightSpacePos = u_lightMatrices[i] * vec4(worldPos, 1.0);
+
+		// Perform perspective division:
+		vec3 projectedCoords = lightSpacePos.xyz / lightSpacePos.w;
+
+		// Transform from [-1,1] range to [0,1] range:
+		projectedCoords = projectedCoords * 0.5 + 0.5;
+
+		// If projected position is within light frustum, perform shadow test:
+		if (!outsideShadowmapBounds(projectedCoords))
+		{
+			// Get depth of closest occluder from shadowmap, scaled to [0,farPlane] range:
+			vec2 moments = texture(u_pointShadowmapArray, vec3(projectedCoords.xy, i)).rg;
+			moments.x *= u_lightFarPlane;
+			moments.y *= u_lightFarPlane * u_lightFarPlane;
+			
+			vec3 lightDir = worldPos - u_pointLights[0].position;
+			float currentDepth = length(lightDir);
+
+			const float bias = 0.05;
+			float p = step(currentDepth, moments.x + bias);
+
+			float variance = max(moments.y - moments.x * moments.x, 0.00002);
+			float d = currentDepth - moments.x;
+
+			float pMax = variance / (variance + d * d);
+
+			return clamp(exp(-1.0 * (currentDepth - moments.x)), 0.0, 1.0);
+
+			return max(p, pMax);
+		}
+	}
+
+	return 1.0;
+}
+
 vec3 getWorldPos(uvec3 globalThreadID)
 {
 	// World position is cameraMat * camPos + dir * froxelDepth, where dir is vec3(invocationID.xy - (frameSize * 0.5)) / frameSize.y, 1.0):
@@ -190,7 +243,7 @@ void main()
 	// Accumulate lighting at this froxel:
 	for (uint i = 0; i < u_numLights; ++i)
 	{
-		lighting += calcPointLight(i, worldPos) * phaseHG(i, worldPos, u_phaseGParam);
+		lighting += calcPointLight(i, worldPos) * phaseHG(i, worldPos, u_phaseGParam) * calcShadow(worldPos);
 	}
 
 	// Multiply accumulated lighting by fog albedo colour:

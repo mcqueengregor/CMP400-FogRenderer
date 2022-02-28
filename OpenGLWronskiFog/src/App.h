@@ -57,21 +57,25 @@ private:
 	GLuint		createFBO(glm::uvec2 dim, GLuint& colourTexBuffer, GLuint& depthTexBuffer);
 	GLuint		createUBO(size_t size, GLuint index, GLuint offset);
 	GLuint		createShadowmap(glm::uvec2 shadowmapDim, GLuint& colourTexBuffer, GLuint& depthTexBuffer);
+	GLuint		createShadowmapArray(glm::uvec3 shadowmapDim, GLuint& colourTexBuffer);
+	GLuint		createShadowmapArray(glm::uvec3 shadowmapDim, GLuint& colourTexBuffer, GLuint& depthTexBuffer);
 
 	// Required scene data:
 	GLFWwindow* m_window;
 	Camera		m_camera;
 
 	// Shaders:
-	Shader m_shader;					// Simple model rendering and texturing shader (VS/FS).
-	Shader m_instanceShader;			// Instanced model rendering and texturing shader (VS/FS).
-	Shader m_depthShader;				// As above, but outputting depth as colour information (VS/FS).
-	Shader m_instanceDepthShader;		// Instanced shader but outputting depth as colour (VS/FS).
-	Shader m_fullscreenShader;			// Shader with zero matrix operations and texturing (VS/FS).
-	Shader m_fogScatterAbsorbShader;	// Fog scattering and absorption evaluation shader (CS).
-	Shader m_fogAccumShader;			// Fog accumulation shader using results of above S&A shader (CS).
-	Shader m_fogCompositeShader;		// Fullscreen rendering, combining fog and opaque geometry rendering results (VS/FS).
-	Shader m_varianceShadowmapShader;	// Draws variance depth data (depth and depth * depth) to shadowmap FBO (VS/FS).
+	Shader m_shader;							// Simple model rendering and texturing shader (VS/FS).
+	Shader m_instanceShader;					// Instanced model rendering and texturing shader (VS/FS).
+	Shader m_depthShader;						// As above, but outputting depth as colour information (VS/FS).
+	Shader m_instanceDepthShader;				// Instanced shader but outputting depth as colour (VS/FS).
+	Shader m_fullscreenShader;					// Shader with zero matrix operations and texturing (VS/FS).
+	Shader m_fogScatterAbsorbShader;			// Fog scattering and absorption evaluation shader (CS).
+	Shader m_fogAccumShader;					// Fog accumulation shader using results of above S&A shader (CS).
+	Shader m_fogCompositeShader;				// Fullscreen rendering, combining fog and opaque geometry rendering results (VS/FS).
+	Shader m_varianceShadowmapLayeredShader;	// Draws variance depth data (depth and depth * depth) to shadow map texture array (VS/GS/FS).
+	Shader m_horiBlurLayeredShader;				// Performs horizontal Gaussian blur on layers of a shadow map texture array (VS/GS/FS).
+	Shader m_vertBlurLayeredShader;				// As above, but blurring vertically (VS/GS/FS).
 
 	// Misc shader data (uniforms and dispatch group sizes):
 	// Fog data:
@@ -117,14 +121,18 @@ private:
 	// UBOs:
 	GLuint m_matricesUBO;
 
-	// FBOs:
-	GLuint	m_fullscreenColourFBO;
+	// FBOs and colour/depth buffers:
+	GLuint	m_fullscreenColourFBO;			// Fullscreen quad
 	GLuint	m_fullscreenDepthFBO;
-	GLuint	m_FBOColourBuffer;
+	GLuint	m_FBOColourBuffer;				
 	GLuint	m_FBODepthBuffer;
-	GLuint	m_pointShadowmapFBOs[6];
-	GLuint	m_pointShadowmapColourBuffers[6];
-	GLuint	m_pointShadowmapDepthBuffers[6];
+	GLuint	m_pointShadowmapArrayFBO;		// Point light shadowmap texture array
+	GLuint	m_pointShadowmapArrayColour;
+	GLuint	m_pointShadowmapArrayDepth;
+	GLuint	m_horiBlurShadowmapArrayFBO;	// Horizontally-blurred shadowmap array
+	GLuint	m_horiBlurShadowmapArrayColour;
+	GLuint	m_vertBlurShadowmapArrayFBO;	// Vertically-blurred shadowmap array
+	GLuint	m_vertBlurShadowmapArrayColour;
 	GLuint* m_currentOutputBuffer;
 
 	// Render groups debug text:
@@ -133,6 +141,8 @@ private:
 	std::string m_depthPassText			= std::string("Depth pass");
 	std::string m_colourPassText		= std::string("Colour pass");
 	std::string m_shadowmapPassText		= std::string("Shadowmapping pass");
+	std::string m_horiBlurPassText		= std::string("Horizontal blur pass");
+	std::string m_vertBlurPassText		= std::string("Vertical blur pass");
 	std::string m_planetRenderText		= std::string("Planet rendering");
 	std::string m_asteroidRenderText	= std::string("Asteroid instanced rendering");
 	std::string m_planeRenderText		= std::string("Plane rendering");

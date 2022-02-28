@@ -198,7 +198,10 @@
     <None Include="shaders\fogScatterAbsorbShader.comp" />
     <None Include="shaders\fullscreenShader.frag" />
     <None Include="shaders\fullscreenShader.vert" />
+    <None Include="shaders\horiBlurArrayShader.frag" />
     <None Include="shaders\instancedShader.vert" />
+    <None Include="shaders\layeredBlurShader.geom" />
+    <None Include="shaders\layeredShadowShader.geom" />
     <None Include="shaders\passthroughShader.comp" />
     <None Include="shaders\shadowShader.vert" />
     <None Include="shaders\singleColour.frag" />
@@ -206,6 +209,8 @@
     <None Include="shaders\textureShader.frag" />
     <None Include="shaders\textureShader.vert" />
     <None Include="shaders\varianceShadowShader.frag" />
+    <None Include="shaders\vertBlurArrayShader.frag" />
+    <None Include="shaders\worldSpaceShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

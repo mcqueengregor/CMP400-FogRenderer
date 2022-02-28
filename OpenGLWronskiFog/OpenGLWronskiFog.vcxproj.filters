@@ -154,5 +154,10 @@
     <None Include="shaders\varianceShadowShader.frag" />
     <None Include="shaders\shadowShader.vert" />
     <None Include="shaders\singleColourShader.frag" />
+    <None Include="shaders\layeredBlurShader.geom" />
+    <None Include="shaders\horiBlurArrayShader.frag" />
+    <None Include="shaders\vertBlurArrayShader.frag" />
+    <None Include="shaders\layeredShadowShader.geom" />
+    <None Include="shaders\worldSpaceShader.vert" />
   </ItemGroup>
 </Project>

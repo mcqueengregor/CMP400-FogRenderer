@@ -67,4 +67,37 @@ public:
 			return "UNRECOGNISED ERROR";
 		}
 	}
+
+	static inline void checkFramebuffer()
+	{
+		// Output error with non-complete framebuffer, if there is any:
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "ERROR: FRAMEBUFFER NOT COMPLETE (";
+			switch (glCheckFramebufferStatus(GL_FRAMEBUFFER))
+			{
+			case GL_FRAMEBUFFER_UNDEFINED:
+				std::cout << "GL_FRAMEBUFFER_UNDEFINED)\n";
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				std::cout << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT)\n";
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				std::cout << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT)\n";
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+				std::cout << "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER)\n";
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+				std::cout << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER)\n";
+				break;
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				std::cout << "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER)\n";
+				break;
+			default:
+				std::cout << "UNKNOWN ERROR\n";
+				break;
+			}
+		}
+	}
 };
