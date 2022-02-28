@@ -65,17 +65,19 @@ private:
 	Camera		m_camera;
 
 	// Shaders:
-	Shader m_shader;							// Simple model rendering and texturing shader (VS/FS).
-	Shader m_instanceShader;					// Instanced model rendering and texturing shader (VS/FS).
-	Shader m_depthShader;						// As above, but outputting depth as colour information (VS/FS).
-	Shader m_instanceDepthShader;				// Instanced shader but outputting depth as colour (VS/FS).
-	Shader m_fullscreenShader;					// Shader with zero matrix operations and texturing (VS/FS).
-	Shader m_fogScatterAbsorbShader;			// Fog scattering and absorption evaluation shader (CS).
-	Shader m_fogAccumShader;					// Fog accumulation shader using results of above S&A shader (CS).
-	Shader m_fogCompositeShader;				// Fullscreen rendering, combining fog and opaque geometry rendering results (VS/FS).
-	Shader m_varianceShadowmapLayeredShader;	// Draws variance depth data (depth and depth * depth) to shadow map texture array (VS/GS/FS).
-	Shader m_horiBlurLayeredShader;				// Performs horizontal Gaussian blur on layers of a shadow map texture array (VS/GS/FS).
-	Shader m_vertBlurLayeredShader;				// As above, but blurring vertically (VS/GS/FS).
+	Shader m_shader;									// Simple model rendering and texturing shader (VS/FS).
+	Shader m_singleColourShader;						// As above, but renders magenta rather than texture information (VS/FS).
+	Shader m_instanceShader;							// Instanced model rendering and texturing shader (VS/FS).
+	Shader m_depthShader;								// As above, but outputting depth as colour information (VS/FS).
+	Shader m_instanceDepthShader;						// Instanced shader but outputting depth as colour (VS/FS).
+	Shader m_fullscreenShader;							// Shader with zero matrix operations and texturing (VS/FS).
+	Shader m_fogScatterAbsorbShader;					// Fog scattering and absorption evaluation shader (CS).
+	Shader m_fogAccumShader;							// Fog accumulation shader using results of above S&A shader (CS).
+	Shader m_fogCompositeShader;						// Fullscreen rendering, combining fog and opaque geometry rendering results (VS/FS).
+	Shader m_varianceShadowmapLayeredShader;			// Draws variance depth data (depth and depth * depth) to shadow map texture array (VS/GS/FS).
+	Shader m_instanceVarianceShadowmapLayeredShader;	// As above, but with instanced rendering (VS/GS/FS).
+	Shader m_horiBlurLayeredShader;						// Performs horizontal Gaussian blur on layers of a shadow map texture array (VS/GS/FS).
+	Shader m_vertBlurLayeredShader;						// As above, but blurring vertically (VS/GS/FS).
 
 	// Misc shader data (uniforms and dispatch group sizes):
 	// Fog data:
@@ -86,6 +88,7 @@ private:
 	float				m_fogPhaseGParam		= 0.85f;
 	float				m_fogDensity			= 0.03f;
 	bool				m_useHeterogeneousFog	= true;
+	bool				m_useShadows			= false;
 
 	// Noise data:
 	float				m_noiseFreq				= 0.15f;

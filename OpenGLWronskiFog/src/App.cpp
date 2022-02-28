@@ -162,12 +162,12 @@ void App::update(float dt)
 	// Calculate light space matrices:
 	glm::mat4 lightProj = glm::perspective(glm::radians(90.0f), 1.0f, m_lightViewPlanes.x, m_lightViewPlanes.y);
 
-	m_lightSpaceMat[0] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Right	(+ve x)
-	m_lightSpaceMat[1] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Left		(-ve x)
+	m_lightSpaceMat[0] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Right	(+ve x)
+	m_lightSpaceMat[1] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Left		(-ve x)
 	m_lightSpaceMat[2] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f));	// Up		(+ve y)
 	m_lightSpaceMat[3] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f));	// Down		(-ve y)
-	m_lightSpaceMat[4] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Forward	(+ve z)
-	m_lightSpaceMat[5] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f));	// Back		(-ve z)
+	m_lightSpaceMat[4] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Forward	(+ve z)
+	m_lightSpaceMat[5] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Back		(-ve z)
 
 	// Set shader uniforms:
 	Renderer::pushDebugGroup(m_uniformUpdateText);
@@ -188,14 +188,28 @@ void App::update(float dt)
 
 		m_noiseOffset += m_windDirection * dt;
 		m_fogScatterAbsorbShader.setVec3("u_noiseOffset", m_noiseOffset);
+		m_fogScatterAbsorbShader.setBool("u_useShadows", m_useShadows);
 
 		m_fogScatterAbsorbShader.setPointLight("u_pointLights[0]", m_light);
 		m_fogScatterAbsorbShader.setInt("u_numLights", 1);
+		m_fogScatterAbsorbShader.setFloat("u_lightFarPlane", m_lightViewPlanes.y);
+		for (int i = 0; i < 6; ++i)
+			m_fogScatterAbsorbShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 
 		m_fogCompositeShader.use();
 		m_fogCompositeShader.setFloat("u_farPlane", m_farPlane);
+
+		m_varianceShadowmapLayeredShader.use();
+		m_varianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
+		m_varianceShadowmapLayeredShader.setVec3("u_lightPos", m_pointLightPosition);
 		for (int i = 0; i < 6; ++i)
-			m_fogCompositeShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
+			m_varianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
+
+		m_instanceVarianceShadowmapLayeredShader.use();
+		m_instanceVarianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
+		m_instanceVarianceShadowmapLayeredShader.setVec3("u_lightPos", m_pointLightPosition);
+		for (int i = 0; i < 6; ++i)
+			m_instanceVarianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 	}
 	Renderer::popDebugGroup();
 
@@ -213,16 +227,9 @@ void App::render()
 	{
 		Renderer::setViewport(c_shadowmapDim);
 
-		m_varianceShadowmapLayeredShader.use();
-		m_varianceShadowmapLayeredShader.setFloat("farPlane", m_lightViewPlanes.y);
-		m_varianceShadowmapLayeredShader.setVec3("lightPos", m_pointLightPosition);
-
 		// Render to shadowmap texture array:
 		Renderer::setTarget(m_pointShadowmapArrayFBO);
 		Renderer::clear(1.0f, 1.0f, 0.0f, 1.0f, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		for (int i = 0; i < 6; ++i)
-			m_varianceShadowmapLayeredShader.setMat4("lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 
 		// Render planet:
 		Renderer::pushDebugGroup(m_planetRenderText);
@@ -234,13 +241,14 @@ void App::render()
 		// Render asteroids:
 		Renderer::pushDebugGroup(m_asteroidRenderText);
 		{
-			Renderer::drawInstanced(m_rock, m_varianceShadowmapLayeredShader, c_asteroidsCount);
+			Renderer::drawInstanced(m_rock, m_instanceVarianceShadowmapLayeredShader, c_asteroidsCount);
 		}
 		Renderer::popDebugGroup();
 
 		// Render plane:
 		Renderer::pushDebugGroup(m_planeRenderText);
 		{
+			m_varianceShadowmapLayeredShader.use();
 			m_varianceShadowmapLayeredShader.setMat4("world", m_planeWorld);
 			Renderer::draw(m_planeVAO, 6, m_varianceShadowmapLayeredShader);
 		}
@@ -271,8 +279,9 @@ void App::render()
 	// Dispatch fog scattering and absorption evaluation compute shader ------------------------------------------
 	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
 	{
-		FogRenderer::bindTex(1, m_fogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
-		FogRenderer::bindTex(2, m_vertBlurShadowmapArrayColour, GL_READ_ONLY, GL_RG32F);
+		FogRenderer::bindImage(1, m_fogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
+		Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_vertBlurShadowmapArrayColour);
+		FogRenderer::bindImage(2, m_vertBlurShadowmapArrayColour, GL_READ_ONLY, GL_RG32F);
 
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 	}
@@ -282,8 +291,8 @@ void App::render()
 	// Dispatch fog accumulation compute shader ------------------------------------------------------------------
 	Renderer::pushDebugGroup(m_fogAccumText);
 	{
-		FogRenderer::bindTex(2, m_fogScatterAbsorbTex, GL_READ_ONLY, GL_RGBA32F);
-		FogRenderer::bindTex(3, m_fogAccumTex, GL_WRITE_ONLY, GL_RGBA32F);
+		FogRenderer::bindImage(2, m_fogScatterAbsorbTex, GL_READ_ONLY, GL_RGBA32F);
+		FogRenderer::bindImage(3, m_fogAccumTex, GL_WRITE_ONLY, GL_RGBA32F);
 		FogRenderer::dispatch(c_fogNumWorkGroups.x, c_fogNumWorkGroups.y, 1, m_fogAccumShader);
 	}
 	Renderer::popDebugGroup();
@@ -353,8 +362,9 @@ void App::render()
 		Renderer::pushDebugGroup(m_debugRenderText);
 		{
 			glDisable(GL_CULL_FACE);
-			m_shader.setMat4("world", m_lightCubeWorld);
-			Renderer::draw(m_lightCubeVAO, 36, m_shader);
+			m_singleColourShader.use();
+			m_singleColourShader.setMat4("world", m_lightCubeWorld);
+			Renderer::draw(m_lightCubeVAO, 36, m_singleColourShader);
 			glEnable(GL_CULL_FACE);
 		}
 		Renderer::popDebugGroup();
@@ -412,6 +422,7 @@ void App::gui()
 			ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
 			ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
 			ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
+			ImGui::Checkbox("Use shadowmaps?", &m_useShadows);
 		}
 		if (ImGui::CollapsingHeader("Light parameters"))
 		{
@@ -505,6 +516,7 @@ void App::setupShaders()
 {
 	// Load and compile shader files:
 	m_shader.loadShader("shaders/textureShader.vert", "shaders/textureShader.frag");
+	m_singleColourShader.loadShader("shaders/textureShader.vert", "shaders/singleColourShader.frag");
 	m_depthShader.loadShader("shaders/depthShader.vert", "shaders/depthShader.frag");
 	m_instanceShader.loadShader("shaders/instancedShader.vert", "shaders/textureShader.frag");
 	m_instanceDepthShader.loadShader("shaders/instancedShader.vert", "shaders/depthShader.frag");
@@ -513,6 +525,7 @@ void App::setupShaders()
 	m_fogAccumShader.loadShader("shaders/fogAccumulationShader.comp");
 	m_fogCompositeShader.loadShader("shaders/fullscreenShader.vert", "shaders/fogCompositeShader.frag");
 	m_varianceShadowmapLayeredShader.loadShader("shaders/worldSpaceShader.vert", "shaders/varianceShadowShader.frag", "shaders/layeredShadowShader.geom");
+	m_instanceVarianceShadowmapLayeredShader.loadShader("shaders/instancedShadowShader.vert", "shaders/varianceShadowShader.frag", "shaders/layeredShadowShader.geom");
 	m_horiBlurLayeredShader.loadShader("shaders/fullscreenShader.vert", "shaders/horiBlurArrayShader.frag", "shaders/layeredBlurShader.geom");
 	m_vertBlurLayeredShader.loadShader("shaders/fullscreenShader.vert", "shaders/vertBlurArrayShader.frag", "shaders/layeredBlurShader.geom");
 
@@ -526,6 +539,9 @@ void App::setupShaders()
 	m_horiBlurLayeredShader.setInt("u_screenTex", 0);
 	m_vertBlurLayeredShader.use();
 	m_vertBlurLayeredShader.setInt("u_screenTex", 0);
+
+	m_fogScatterAbsorbShader.use();
+	m_fogScatterAbsorbShader.setInt("u_pointShadowmapArray", 0);
 }
 
 void App::setupUBOs()
