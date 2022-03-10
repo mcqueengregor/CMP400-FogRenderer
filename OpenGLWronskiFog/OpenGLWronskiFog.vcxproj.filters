@@ -159,5 +159,6 @@
     <None Include="shaders\vertBlurArrayShader.frag" />
     <None Include="shaders\layeredShadowShader.geom" />
     <None Include="shaders\worldSpaceShader.vert" />
+    <None Include="shaders\instancedShadowShader.vert" />
   </ItemGroup>
 </Project>

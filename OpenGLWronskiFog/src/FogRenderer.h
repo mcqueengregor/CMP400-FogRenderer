@@ -14,7 +14,7 @@ public:
 		shader.use();
 		GLCALL(glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z));
 	}
-	static void bindTex(const GLuint binding, const GLuint tex, const GLuint access, const GLuint format)
+	static void bindImage(const GLuint binding, const GLuint tex, const GLuint access, const GLuint format)
 	{
 		GLCALL(glBindImageTexture(binding, tex, 0, GL_FALSE, 0, access, format));
 	}

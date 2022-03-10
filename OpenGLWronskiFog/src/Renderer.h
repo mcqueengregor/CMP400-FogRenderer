@@ -125,6 +125,12 @@ public:
 		glBindVertexArray(0);
 	}
 
+	static void bindTex(GLuint unit, GLenum target, const GLuint texture)
+	{
+		glActiveTexture(GL_TEXTURE0 + unit);
+		glBindTexture(target, texture);
+	}
+
 	static inline void clear(GLuint clearFlags)
 	{
 		glClearColor(0.2f, 0.3f, 0.3f, 1.f);

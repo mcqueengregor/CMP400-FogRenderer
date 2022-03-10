@@ -2,7 +2,7 @@
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 18) out;
 
-uniform mat4 lightMatrices[6];
+uniform mat4 u_lightMatrices[6];
 
 out vec4 fragPos;
 
@@ -17,7 +17,7 @@ void main()
 		{
 			// Transform vertices to light space and output:
 			fragPos = gl_in[i].gl_Position;
-			gl_Position = lightMatrices[layer] * fragPos;
+			gl_Position = u_lightMatrices[layer] * fragPos;
 			EmitVertex();
 		}
 		EndPrimitive();
