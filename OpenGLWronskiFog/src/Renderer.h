@@ -12,7 +12,7 @@ public:
 		for (const auto& mesh : model.m_meshes)
 		{
 			GLuint	diffuseIndex = 1,
-					specularIndex = 1;
+				specularIndex = 1;
 
 			// Set texture data for model:
 			for (size_t i = 0; i < mesh.m_textures.size(); i++)
@@ -62,7 +62,7 @@ public:
 		for (const auto& mesh : model.m_meshes)
 		{
 			GLuint	diffuseIndex = 1,
-					specularIndex = 1;
+				specularIndex = 1;
 
 			// Set texture data for model:
 			for (size_t i = 0; i < mesh.m_textures.size(); i++)
