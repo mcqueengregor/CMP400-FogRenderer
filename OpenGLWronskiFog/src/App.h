@@ -83,9 +83,9 @@ private:
 	// Fog data:
 	const glm::uvec3	c_fogNumWorkGroups		= glm::uvec3(160, 10, 64);	// Local work group size is (160, 9, 1) for a 160x90x64 texture
 	float				m_fogScattering			= 1.0f;
-	float				m_fogAbsorption			= 1.0f;
+	float				m_fogAbsorption			= 0.0f;
 	glm::vec3			m_fogAlbedo				= glm::vec3(1.0f);
-	float				m_fogPhaseGParam		= 0.85f;
+	float				m_fogPhaseGParam		= -0.25f;
 	float				m_fogDensity			= 0.03f;
 	bool				m_useHeterogeneousFog	= false;
 	bool				m_useShadows			= true;
@@ -108,7 +108,7 @@ private:
 	float m_pointLightConstant		= 1.0f;
 	float m_pointLightLinear		= 0.09f;
 	float m_pointLightQuadratic		= 0.032f;
-	float m_lightIntensity			= 15.0f;
+	float m_lightIntensity			= 150.0f;
 
 	// VAOs, VBOs and EBOs:
 	GLuint m_fullscreenQuadVAO;
@@ -158,7 +158,9 @@ private:
 	Model	m_planet;
 	Model	m_rock;
 	GLuint	m_rockTex;
-	GLuint	m_fogScatterAbsorbTex;
+	GLuint	m_evenFogScatterAbsorbTex;
+	GLuint	m_oddFogScatterAbsorbTex;
+	
 	GLuint	m_fogAccumTex;
 
 	// Misc model/texture data:
@@ -175,6 +177,7 @@ private:
 	// Misc application data:
 	float	m_dt{};
 	float	m_lastFrame{};
+	int		m_frameIndex{};
 
 	float m_nearPlane = 0.1f;
 	float m_farPlane = 150.0f;
@@ -185,6 +188,7 @@ private:
 	bool	m_hasRightClicked = false;
 	bool	m_outputDepth = false;
 	bool	m_applyFog = false;
+	bool	m_evenFrame = true;	// Boolean used to alternate between which 3D fog texture to write to. Other texture is used for temporal blending.
 
 	double	m_originalCursorPosX;
 	double	m_originalCursorPosY;

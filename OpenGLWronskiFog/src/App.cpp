@@ -156,6 +156,7 @@ void App::update(float dt)
 	m_planet.scale(2.0f);
 
 	m_light.setPosition(m_pointLightPosition);
+	m_light.setDiffuse(m_pointLightDiffuse);
 	m_lightCubeWorld = glm::translate(glm::mat4(1.0f), m_pointLightPosition);
 	m_lightCubeWorld = glm::scale(m_lightCubeWorld, glm::vec3(0.25f));
 
@@ -195,6 +196,7 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setFloat("u_lightFarPlane", m_lightViewPlanes.y);
 		for (int i = 0; i < 6; ++i)
 			m_fogScatterAbsorbShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
+		m_fogScatterAbsorbShader.setInt("u_frameIndex", m_frameIndex);
 
 		m_fogCompositeShader.use();
 		m_fogCompositeShader.setFloat("u_farPlane", m_farPlane);
@@ -215,6 +217,11 @@ void App::update(float dt)
 
 	// Set which buffer to output:
 	m_currentOutputBuffer = m_outputDepth ? &m_FBODepthBuffer : &m_FBOColourBuffer;
+
+	// Toggle which fog texture to write to and which to blend with:
+	m_evenFrame = !m_evenFrame;
+
+	m_frameIndex < 60 ? ++m_frameIndex : m_frameIndex = 0;
 }
 
 void App::render()
@@ -282,8 +289,17 @@ void App::render()
 	// Dispatch fog scattering and absorption evaluation compute shader ------------------------------------------
 	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
 	{
-		FogRenderer::bindImage(1, m_fogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
 		Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_vertBlurShadowmapArrayColour);
+		if (m_evenFrame)
+		{
+			FogRenderer::bindImage(1, m_evenFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
+			Renderer::bindTex(1, GL_TEXTURE_3D, m_oddFogScatterAbsorbTex);
+		}
+		else
+		{
+			FogRenderer::bindImage(1, m_oddFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
+			Renderer::bindTex(1, GL_TEXTURE_3D, m_evenFogScatterAbsorbTex);
+		}
 		FogRenderer::bindImage(2, m_vertBlurShadowmapArrayColour, GL_READ_ONLY, GL_RG32F);
 
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
@@ -294,7 +310,11 @@ void App::render()
 	// Dispatch fog accumulation compute shader ------------------------------------------------------------------
 	Renderer::pushDebugGroup(m_fogAccumText);
 	{
-		FogRenderer::bindImage(2, m_fogScatterAbsorbTex, GL_READ_ONLY, GL_RGBA32F);
+		if (m_evenFrame)
+			FogRenderer::bindImage(2, m_evenFogScatterAbsorbTex, GL_READ_ONLY, GL_RGBA32F);
+		else
+			FogRenderer::bindImage(2, m_oddFogScatterAbsorbTex, GL_READ_ONLY, GL_RGBA32F);
+
 		FogRenderer::bindImage(3, m_fogAccumTex, GL_WRITE_ONLY, GL_RGBA32F);
 		FogRenderer::dispatch(c_fogNumWorkGroups.x, c_fogNumWorkGroups.y, 1, m_fogAccumShader);
 	}
@@ -545,6 +565,7 @@ void App::setupShaders()
 
 	m_fogScatterAbsorbShader.use();
 	m_fogScatterAbsorbShader.setInt("u_pointShadowmapArray", 0);
+	m_fogScatterAbsorbShader.setInt("u_previousFrameFog", 1);
 }
 
 void App::setupUBOs()
@@ -684,9 +705,9 @@ void App::setupModelsAndTextures()
 
 	// Load/create textures:
 	m_rockTex = loadTexture("models/rock/rock.png");
-	m_fogScatterAbsorbTex = createTexture(c_fogTexSize);
+	m_oddFogScatterAbsorbTex = createTexture(c_fogTexSize);
+	m_evenFogScatterAbsorbTex = createTexture(c_fogTexSize);
 	m_fogAccumTex = createTexture(c_fogTexSize);
-
 }
 
 GLFWwindow* App::initWindow()
