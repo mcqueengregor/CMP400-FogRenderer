@@ -87,8 +87,8 @@ private:
 	glm::vec3			m_fogAlbedo				= glm::vec3(1.0f);
 	float				m_fogPhaseGParam		= 0.85f;
 	float				m_fogDensity			= 0.03f;
-	bool				m_useHeterogeneousFog	= true;
-	bool				m_useShadows			= false;
+	bool				m_useHeterogeneousFog	= false;
+	bool				m_useShadows			= true;
 
 	// Noise data:
 	float				m_noiseFreq				= 0.15f;
@@ -108,7 +108,7 @@ private:
 	float m_pointLightConstant		= 1.0f;
 	float m_pointLightLinear		= 0.09f;
 	float m_pointLightQuadratic		= 0.032f;
-	float m_lightIntensity			= 3.0f;
+	float m_lightIntensity			= 15.0f;
 
 	// VAOs, VBOs and EBOs:
 	GLuint m_fullscreenQuadVAO;

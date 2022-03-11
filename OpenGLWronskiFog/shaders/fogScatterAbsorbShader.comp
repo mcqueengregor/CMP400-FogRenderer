@@ -6,11 +6,14 @@ layout (rgba32f, binding = 1) uniform image3D imgOutput;
 
 #define PI 3.141592653589793238462643383279
 #define MAX_LIGHTS 8
+const float MAX_FROXEL_DEPTH = 467.5060701;		// Given by FroxelDepth(63), assuming imgOutput has a z-depth of 64.
 
 layout (std140) uniform Matrices
 {
 	mat4 proj;
 	mat4 view;
+
+	mat4 invViewProj;
 } u_matrices;
 
 struct PointLight
@@ -52,7 +55,7 @@ uniform bool u_useShadows;
 
 // Noise function is from Ken Perlin's Improved Noise implementation: https://cs.nyu.edu/~perlin/noise/
 // Permuation of pseudo-random vector gradients:
-int perm[] = { 151,160,137,91,90,15,
+const int perm[] = { 151,160,137,91,90,15,
    131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
    190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
    88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
@@ -193,13 +196,29 @@ float calcShadow(vec3 worldPos)
 	return 1.0;
 }
 
+// Compute thread ID to world position logic adapted from: https://github.com/diharaw/volumetric-lighting/blob/main/src/shaders/common.glsl
+float uvToNDC(float z)
+{
+	const float bias = 0.002;
+	float reflected = 1 / (z + bias) - MAX_FROXEL_DEPTH;
+	return reflected / (1 - MAX_FROXEL_DEPTH);
+}
+
 vec3 getWorldPos(uvec3 globalThreadID)
 {
-	// World position is cameraMat * camPos + dir * froxelDepth, where dir is vec3(invocationID.xy - (frameSize * 0.5)) / frameSize.y, 1.0):
+	// Get UV coordinates from current thread ID:
 	vec2 frameSize = imageSize(imgOutput).xy;
-	vec2 uv = vec2(globalThreadID.xy - (frameSize * 0.5)) / frameSize.y;
-	vec3 dir = transpose(mat3(u_matrices.view)) * normalize(vec3(uv.xy, 1.0));	// View matrix is used as a mat3 since only camera rotation is needed.
-	return u_cameraPos + dir * getFroxelDepth(globalThreadID.z);
+	vec3 uv = vec3(globalThreadID.xy / frameSize, getFroxelDepth(globalThreadID.z) / MAX_FROXEL_DEPTH);
+
+	// Get NDC equivalent of this thread's UV coordinates:
+	vec3 ndc = 2.0 * vec3(uv.xy, uvToNDC(uv.z)) - 1.0;
+
+	// Use inverse view * proj matrix to get world position:
+	vec4 world = u_matrices.invViewProj * vec4(ndc, 1.0);
+
+	world.xyz /= world.w;
+
+	return world.xyz;
 }
 
 float phaseHG(uint lightIndex, vec3 worldPos, float g)
