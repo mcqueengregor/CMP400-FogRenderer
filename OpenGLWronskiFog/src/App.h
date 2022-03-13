@@ -89,6 +89,7 @@ private:
 	float				m_fogDensity			= 0.03f;
 	bool				m_useHeterogeneousFog	= false;
 	bool				m_useShadows			= true;
+	bool				m_useTemporal			= false;
 
 	// Noise data:
 	float				m_noiseFreq				= 0.15f;

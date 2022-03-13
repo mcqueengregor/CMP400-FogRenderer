@@ -18,7 +18,7 @@ float getFroxelSliceIndex(float depth)
 {
 	// Exponential distance distribution -> froxel slice index. Returns the 
 	// froxel slice (or blend between slices) given a distance value using
-	// the inverse of Kovalovs' slice distribution equation:
+	// the inverse of Kovalovs' slice distribution equation (with C=8 & Q=1):
 	return (8.0 * log((depth + 2.0) / 2.0)) / LN_2;
 }
 

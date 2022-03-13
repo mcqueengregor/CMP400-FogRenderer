@@ -176,6 +176,7 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.use();
 		m_fogScatterAbsorbShader.setVec3("u_cameraPos", m_camera.getPosition());
 		m_fogScatterAbsorbShader.setVec3("u_cameraForward", m_camera.getForward());
+		m_fogScatterAbsorbShader.setFloat("u_farPlane", m_farPlane);
 
 		m_fogScatterAbsorbShader.setVec3("u_albedo", m_fogAlbedo);
 		m_fogScatterAbsorbShader.setFloat("u_scatteringCoefficient", m_fogScattering);
@@ -190,6 +191,7 @@ void App::update(float dt)
 		m_noiseOffset += m_windDirection * dt;
 		m_fogScatterAbsorbShader.setVec3("u_noiseOffset", m_noiseOffset);
 		m_fogScatterAbsorbShader.setBool("u_useShadows", m_useShadows);
+		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
 
 		m_fogScatterAbsorbShader.setPointLight("u_pointLights[0]", m_light);
 		m_fogScatterAbsorbShader.setInt("u_numLights", 1);
@@ -221,6 +223,7 @@ void App::update(float dt)
 	// Toggle which fog texture to write to and which to blend with:
 	m_evenFrame = !m_evenFrame;
 
+	// Update frame index for Halton sequences, wrap round to zero after 60 frames:
 	m_frameIndex < 60 ? ++m_frameIndex : m_frameIndex = 0;
 }
 
@@ -416,6 +419,9 @@ void App::render()
 	// Restore wireframe mode to on:
 	if (m_wireframe)
 		Renderer::setWireframe(true);
+
+	// Setup this frame's view * proj matrix to be used in the next frame for temporal reprojection:
+	glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(m_proj * m_camera.getViewMat()));
 }
 
 void App::gui()
@@ -446,6 +452,7 @@ void App::gui()
 			ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
 			ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
 			ImGui::Checkbox("Use shadowmaps?", &m_useShadows);
+			ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
 		}
 		if (ImGui::CollapsingHeader("Light parameters"))
 		{
@@ -570,7 +577,7 @@ void App::setupShaders()
 
 void App::setupUBOs()
 {
-	m_matricesUBO = createUBO(3 * sizeof(glm::mat4), 0, 0);
+	m_matricesUBO = createUBO(4 * sizeof(glm::mat4), 0, 0);
 	unsigned int uniformBlockIndex = glGetUniformBlockIndex(m_shader.m_ID, "Matrices");
 	glUniformBlockBinding(m_shader.m_ID, uniformBlockIndex, 0);
 

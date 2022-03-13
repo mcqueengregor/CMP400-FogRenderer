@@ -14,6 +14,7 @@ layout (std140) uniform Matrices
 	mat4 view;
 
 	mat4 invViewProj;
+	mat4 prevViewProj;
 } u_matrices;
 
 struct PointLight
@@ -31,6 +32,7 @@ uniform mat4 u_lightMatrices[6];
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
 uniform vec3	u_cameraForward;
+uniform float	u_farPlane;
 
 // Fog data uniforms:
 uniform vec3	u_albedo;
@@ -54,6 +56,7 @@ uniform PointLight	u_pointLights[MAX_LIGHTS];
 uniform sampler2DArray u_pointShadowmapArray;
 uniform sampler3D u_previousFrameFog;
 uniform bool u_useShadows;
+uniform bool u_useTemporal;
 
 // Noise function is from Ken Perlin's Improved Noise implementation: https://cs.nyu.edu/~perlin/noise/
 // Permuation of pseudo-random vector gradients:
@@ -142,6 +145,12 @@ float getSliceThickness(uint slice)
 	return getFroxelDepth(slice + 1) - getFroxelDepth(slice);
 }
 
+float getSliceIndex(float depth)
+{
+	const float ln2 = 0.6931471806;	// ln(2).
+	return (8.0 * log((depth + 2.0) / 2.0)) / ln2;
+}
+
 bool outsideShadowmapBounds(vec3 projectedCoords)
 {
 	// Return whether projected NDC coords are within a light's frustum or not (i.e. if 0 < pCoords < 1):
@@ -220,6 +229,18 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter)
 	return world.xyz;
 }
 
+vec3 getUVCoords(vec3 worldPos)
+{
+	// Transform world position to NDC of previous frame with previous frame's view*proj matrix:
+	vec4 ndc = u_matrices.prevViewProj * vec4(worldPos, 1.0);
+	ndc.xyz /= ndc.w;
+
+	// Get UV coordinates from current thread's NDC coordinates:
+	vec3 uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex((ndc.z * 0.5 + 0.5) * u_farPlane) / MAX_FROXEL_DEPTH);
+
+	return uv;
+}
+
 float phaseHG(uint lightIndex, vec3 worldPos, float g)
 {
 	vec3 lightDir = u_pointLights[lightIndex].position - worldPos;
@@ -253,9 +274,9 @@ float halton(float index, uint base)
 void main()
 {
 	// Get jitter for the current thread with Halton sequences, tranformed to [-0.5, 0.5] range:
-	float jitter = halton(u_frameIndex, 2);
+	float jitter = halton(u_frameIndex, 3);
 
-	vec3 worldPos = getWorldPos(gl_GlobalInvocationID, jitter);
+	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter);
 	float thickness = getSliceThickness(gl_GlobalInvocationID.z);
 
 	float scattering;
@@ -263,7 +284,7 @@ void main()
 
 	if (u_useHetFog)
 	{
-		float density = perlinNoise((worldPos + u_noiseOffset) * u_noiseFreq) /* + remapped height stuff */;
+		float density = perlinNoise((jitteredWorldPos + u_noiseOffset) * u_noiseFreq) /* + remapped height stuff */;
 
 		// Transform noise from [-1,1] range to [0,1] range:
 		density = density * 0.5 + 0.5;
@@ -283,10 +304,10 @@ void main()
 	// Accumulate lighting at this froxel:
 	for (uint i = 0; i < u_numLights; ++i)
 	{
-		vec3 light = calcPointLight(i, worldPos) * phaseHG(i, worldPos, u_phaseGParam);
+		vec3 light = calcPointLight(i, jitteredWorldPos) * phaseHG(i, jitteredWorldPos, u_phaseGParam);
 
 		if (u_useShadows)
-			light *= calcShadow(worldPos);
+			light *= calcShadow(jitteredWorldPos);
 
 		lighting += light;
 	}
@@ -294,6 +315,22 @@ void main()
 	// Multiply accumulated lighting by fog albedo colour:
 	lighting *= u_albedo;
 
+	vec4 results = vec4(lighting * scattering, scattering + absorption);
+
+	// Reproject to previous frame's results, if the unjittered world position can be projected to previous frame blend results:
+	if (u_useTemporal)
+	{
+		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, 0.0);
+		vec3 blendUV = getUVCoords(unjitteredWorldPos);
+
+		// If UV coordinates are within previous frame's frustum, blend results:
+		if (all(greaterThanEqual(blendUV, vec3(0.0))) && all(lessThanEqual(blendUV, vec3(1.0))))
+		{
+			vec4 previousFrameResults = texture(u_previousFrameFog, blendUV);
+			results = mix(results, previousFrameResults, 0.95);
+		}
+	}
+
 	// Write results to output texture:
-	imageStore(imgOutput, ivec3(gl_GlobalInvocationID), vec4(lighting * scattering, scattering + absorption));
+	imageStore(imgOutput, ivec3(gl_GlobalInvocationID), results);
 }
