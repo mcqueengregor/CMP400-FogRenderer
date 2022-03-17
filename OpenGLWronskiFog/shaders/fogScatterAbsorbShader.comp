@@ -27,12 +27,18 @@ struct PointLight
     float quadratic;
 };
 
+struct Ray
+{
+	vec3 origin;
+	vec3 direction;
+};
+
 uniform mat4 u_lightMatrices[6];
 
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
 uniform vec3	u_cameraForward;
-uniform float	u_farPlane;
+uniform vec2	u_cameraPlanes;
 
 // Fog data uniforms:
 uniform vec3	u_albedo;
@@ -53,10 +59,20 @@ uniform vec3	u_noiseOffset;
 uniform int			u_numLights;
 uniform float		u_lightFarPlane;
 uniform PointLight	u_pointLights[MAX_LIGHTS];
-uniform sampler2DArray u_pointShadowmapArray;
-uniform sampler3D u_previousFrameFog;
-uniform bool u_useShadows;
-uniform bool u_useTemporal;
+
+// Texture samplers:
+uniform sampler2DArray	u_pointShadowmapArray;
+uniform sampler3D		u_previousFrameFog;
+uniform sampler2D		u_LUT;
+
+// Control booleans:
+uniform bool	u_useShadows;
+uniform bool	u_useTemporal;
+uniform bool	u_useLUT;
+uniform bool	u_KorH;	// 'true' = use Kovalovs LUT, 'false' = use Hoobler LUT.
+uniform float	u_temporalBlend;
+
+/* UTILITY FUNCTIONS: ---------------------------------------------------------------------------------- */
 
 // Noise function is from Ken Perlin's Improved Noise implementation: https://cs.nyu.edu/~perlin/noise/
 // Permuation of pseudo-random vector gradients:
@@ -132,6 +148,33 @@ float remap(float iMin, float iMax, float oMin, float oMax, float val)
 	return mix(oMin, oMax, t);
 }
 
+bool floatEqual(float a, float b)
+{
+	const float e = 1E-8;
+	return abs(a - b) < e;
+}
+
+bool vectorEqual(vec3 a, vec3 b)
+{
+	return floatEqual(a.x, b.x) && floatEqual(a.y, b.y) && floatEqual(a.z, b.z);
+}
+
+float halton(float index, uint base)
+{
+	float r = 0.0f;
+	float f = 1.0f;
+
+	while (index > 0.0f)
+	{
+		f /= base;
+		r += f * mod(index, float(base));
+		index = floor(index / float(base));
+	}
+	return r;
+}
+
+/* ----------------------------------------------------------------------------------------------------- */
+
 float getFroxelDepth(float slice)
 {
 	const float C = 8.0;
@@ -184,9 +227,9 @@ float calcShadow(vec3 worldPos)
 			float currentDepth = length(lightDir);
 
 			const float bias = 0.05;
+			// Ignore variance/exponential shadow test stuff until standard shadows are actually working
 			return currentDepth > moments.x + bias ? 0.0 : 1.0;
 
-			// Ignore variance/exponential shadow test stuff until standard shadows are actually working
 			float p = step(currentDepth, moments.x + bias);
 
 			float variance = max(moments.y - moments.x * moments.x, 0.00002);
@@ -223,7 +266,6 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter)
 
 	// Use inverse view * proj matrix to get world position:
 	vec4 world = u_matrices.invViewProj * vec4(ndc, 1.0);
-
 	world.xyz /= world.w;
 
 	return world.xyz;
@@ -236,7 +278,24 @@ vec3 getUVCoords(vec3 worldPos)
 	ndc.xyz /= ndc.w;
 
 	// Get UV coordinates from current thread's NDC coordinates:
-	vec3 uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex((ndc.z * 0.5 + 0.5) * u_farPlane) / MAX_FROXEL_DEPTH);
+	vec3 uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex((ndc.z * 0.5 + 0.5) * u_cameraPlanes.y) / MAX_FROXEL_DEPTH);
+	uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(ndc.z * u_cameraPlanes.y) / 63.0);
+
+	// Try new method:
+	/*
+		- Transform z-coord from [-1,1] range to [0,1] range.
+		- Linearise depth value with near and far plane values.
+		- Get real froxel depth with linear depth value.
+		- Get UV coord with inverse of Kovalovs' depth function.
+	*/
+
+	const float n = u_cameraPlanes.x;
+	const float f = u_cameraPlanes.y;
+
+	//ndc.z = ndc.z * 2.0 - 1.0;
+	float linearDepth = (2.0 * n * f) / (f + n - ndc.z * (f - n));
+
+	uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(linearDepth * u_cameraPlanes.y) / 63.0);
 
 	return uv;
 }
@@ -257,18 +316,133 @@ vec3 calcPointLight(uint lightIndex, vec3 worldPos)
     return u_pointLights[lightIndex].diffuse * attenuation * u_lightIntensity;
 }
 
-float halton(float index, uint base)
-{
-	float r = 0.0f;
-	float f = 1.0f;
+/* KOVALOVS LUT SAMPLING: ------------------------------------------------------------------------------ */
 
-	while (index > 0.0f)
+bool raySphereIntersection(Ray froxelRay, uint lightIndex, float lightRadius, out float t0, out float t1)
+{
+	vec3 froxelToLight = u_pointLights[lightIndex].position - froxelRay.origin;
+	float tc = dot(froxelToLight, froxelRay.direction);
+	float lSqr = dot(froxelToLight, froxelToLight);
+
+	float dSqr = abs(tc * tc - lSqr);
+
+	if (dSqr > lightRadius * lightRadius);
+		return false;
+
+	float t1c = sqrt(lightRadius * lightRadius - dSqr);
+
+	t0 = tc - t1c;
+	t1 = tc + t1c;
+
+	return true;
+}
+
+vec4 getKovalovsUVCoords(Ray froxelRay, uint lightIndex, float lightRadius, vec3 point0, vec3 point1)
+{
+	vec3 ab = point0 - u_pointLights[lightIndex].position;
+	vec3 ac = point1 - u_pointLights[lightIndex].position;
+
+	vec3 abNorm = normalize(ab);
+	vec3 acNorm = normalize(ac);
+
+	vec2 uv0 = vec2(0.0);
+	vec2 uv1 = vec2(0.0);
+
+	// If light's position lies on froxel ray or either intersection point-to-light vector is zero vector,
+	// get UV coordinates along the upwards centre line:
+	float dotResult = abs(dot(abNorm, acNorm));
+	if (floatEqual(dotResult, 1.0) || vectorEqual(ab, vec3(0.0)) || vectorEqual(ac, vec3(0.0)))
 	{
-		f /= base;
-		r += f * mod(index, float(base));
-		index = floor(index / float(base));
+		if (dot(ab, froxelRay.direction) > 0.0)
+			uv0 = vec2(0.5, 0.5 - ((length(ab) / lightRadius) * 0.5));
+		else
+			uv0 = vec2(0.5, 0.5 + ((length(ab) / lightRadius) * 0.5));
+
+		if (dot(ac, froxelRay.direction) > 0.0)
+			uv1 = vec2(0.5, 0.5 - ((length(ac) / lightRadius) * 0.5));
+		else
+			uv1 = vec2(0.5, 0.5 + ((length(ac) / lightRadius) * 0.5));
+
+		return vec4(uv0.xy, uv1.xy);
 	}
-	return r;
+	
+	vec3 n = normalize(cross(ab, ac));
+	vec3 nXv = normalize(cross(froxelRay.direction, n));
+
+	uv0.x = dot(nXv, ab);
+	uv0.y = dot(froxelRay.direction, ab);
+	
+	uv1.x = dot(nXv, ac);
+	uv1.y = dot(froxelRay.direction, ac);
+
+	return vec4(uv0.xy, uv1.xy);
+}
+
+float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex, float lightRadius)
+{
+	float t0, t1;
+	vec4 uvPair;
+
+	if (raySphereIntersection(froxelRay, lightIndex, lightRadius, t0, t1))
+	{
+		// If first intersection is behind ray origin, check second intersection:
+		if (t0 < 0.0)
+		{
+			// If second intersection is also behind ray origin, there are no intersections:
+			if (t1 < 0.0)
+			{
+				return 0.0;
+			}
+			else
+			{
+				const vec3 iPoint = froxelRay.origin + froxelRay.direction * t1;
+
+				// If second intersection is in front of froxel end, use froxel start and intersection point:
+				if (t1 < froxelThickness)
+					uvPair = getKovalovsUVCoords(froxelRay, lightIndex, lightRadius, froxelRay.origin, iPoint);
+				// If second intersection is further away than froxel end, use froxel start and end:
+				else
+					uvPair = getKovalovsUVCoords(froxelRay, lightIndex, lightRadius, froxelRay.origin, froxelRay.origin + froxelRay.direction * froxelThickness);
+			}
+		}
+		else
+		{
+			const vec3 iPoint0 = froxelRay.origin + froxelRay.direction * t0;
+			const vec3 iPoint1 = froxelRay.origin + froxelRay.direction * t1;
+
+			// If second intersection is in front of froxel end, use both intersection points:
+			if (t1 < froxelThickness)
+				uvPair = getKovalovsUVCoords(froxelRay, lightIndex, lightRadius, iPoint0, iPoint1);
+			// If first intersection is in front of froxel end, use first intersection and froxel end:
+			else if (t0 < froxelThickness)
+				uvPair = getKovalovsUVCoords(froxelRay, lightIndex, lightRadius, iPoint0, froxelRay.origin + froxelRay.direction * froxelThickness);
+			// If both intersections are behind froxel end, light doesn't intersect this froxel:
+			else
+				return 0.0;
+		}
+	}
+
+	// Sample Kovalovs LUT with UV coords pair, return difference of scattering intensities:
+	const float scattering0 = texture(u_LUT, uvPair.xy).r;
+	const float scattering1 = texture(u_LUT, uvPair.zw).r;
+
+	return abs(scattering0 - scattering1);
+}
+
+vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex, float lightRadius)
+{
+	vec3 lightToCamera = u_cameraPos - u_pointLights[lightIndex].position;
+	float lightDist = length(lightToCamera);
+	vec3 cameraToFroxel = worldPos - u_cameraPos;
+	float froxelDist = length(cameraToFroxel);
+
+	float t0 = max(0.0, lightDist - lightRadius);
+	float tRange = lightRadius + lightDist - t0;
+
+	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(lightToCamera, cameraToFroxel)) / PI);
+	const vec4 scattering = texture(u_LUT, uv);
+
+	return scattering.rgb * scattering.a;
 }
 
 void main()
@@ -327,7 +501,7 @@ void main()
 		if (all(greaterThanEqual(blendUV, vec3(0.0))) && all(lessThanEqual(blendUV, vec3(1.0))))
 		{
 			vec4 previousFrameResults = texture(u_previousFrameFog, blendUV);
-			results = mix(results, previousFrameResults, 0.95);
+			results = mix(results, previousFrameResults, u_temporalBlend);
 		}
 	}
 

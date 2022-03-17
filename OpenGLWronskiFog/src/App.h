@@ -90,6 +90,7 @@ private:
 	bool				m_useHeterogeneousFog	= false;
 	bool				m_useShadows			= true;
 	bool				m_useTemporal			= false;
+	float				m_temporalBlendFactor	= 0.95f;
 
 	// Noise data:
 	float				m_noiseFreq				= 0.15f;

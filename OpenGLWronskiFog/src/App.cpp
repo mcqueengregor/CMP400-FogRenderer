@@ -173,11 +173,13 @@ void App::update(float dt)
 	// Set shader uniforms:
 	Renderer::pushDebugGroup(m_uniformUpdateText);
 	{
+		// Set camera data:
 		m_fogScatterAbsorbShader.use();
 		m_fogScatterAbsorbShader.setVec3("u_cameraPos", m_camera.getPosition());
 		m_fogScatterAbsorbShader.setVec3("u_cameraForward", m_camera.getForward());
-		m_fogScatterAbsorbShader.setFloat("u_farPlane", m_farPlane);
+		m_fogScatterAbsorbShader.setVec2("u_cameraPlanes", glm::vec2(m_nearPlane, m_farPlane));
 
+		// Set fog data:
 		m_fogScatterAbsorbShader.setVec3("u_albedo", m_fogAlbedo);
 		m_fogScatterAbsorbShader.setFloat("u_scatteringCoefficient", m_fogScattering);
 		m_fogScatterAbsorbShader.setFloat("u_absorptionCoefficient", m_fogAbsorption);
@@ -192,6 +194,7 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setVec3("u_noiseOffset", m_noiseOffset);
 		m_fogScatterAbsorbShader.setBool("u_useShadows", m_useShadows);
 		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
+		m_fogScatterAbsorbShader.setFloat("u_temporalBlend", m_temporalBlendFactor);
 
 		m_fogScatterAbsorbShader.setPointLight("u_pointLights[0]", m_light);
 		m_fogScatterAbsorbShader.setInt("u_numLights", 1);
@@ -303,7 +306,6 @@ void App::render()
 			FogRenderer::bindImage(1, m_oddFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
 			Renderer::bindTex(1, GL_TEXTURE_3D, m_evenFogScatterAbsorbTex);
 		}
-		FogRenderer::bindImage(2, m_vertBlurShadowmapArrayColour, GL_READ_ONLY, GL_RG32F);
 
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 	}
@@ -453,6 +455,7 @@ void App::gui()
 			ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
 			ImGui::Checkbox("Use shadowmaps?", &m_useShadows);
 			ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
+			ImGui::SliderFloat("Temporal blend factor", &m_temporalBlendFactor, 0.0f, 1.0f);
 		}
 		if (ImGui::CollapsingHeader("Light parameters"))
 		{
