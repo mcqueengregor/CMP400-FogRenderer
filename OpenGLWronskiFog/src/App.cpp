@@ -227,7 +227,7 @@ void App::update(float dt)
 	m_evenFrame = !m_evenFrame;
 
 	// Update frame index for Halton sequences, wrap round to zero after 60 frames:
-	m_frameIndex < 60 ? ++m_frameIndex : m_frameIndex = 0;
+	m_frameIndex <= 60 ? ++m_frameIndex : m_frameIndex = 0;
 }
 
 void App::render()

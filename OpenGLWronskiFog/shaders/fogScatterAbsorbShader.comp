@@ -255,7 +255,7 @@ float uvToNDC(float z)
 	return reflected / (1 - MAX_FROXEL_DEPTH);
 }
 
-vec3 getWorldPos(uvec3 globalThreadID, float jitter)
+vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 {
 	// Get UV coordinates from current thread ID:
 	vec2 frameSize = imageSize(imgOutput).xy;
@@ -265,7 +265,7 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter)
 	vec3 ndc = 2.0 * vec3(uv.xy, uvToNDC(uv.z)) - 1.0;
 
 	// Use inverse view * proj matrix to get world position:
-	vec4 world = u_matrices.invViewProj * vec4(ndc, 1.0);
+	vec4 world = invViewProj * vec4(ndc, 1.0);
 	world.xyz /= world.w;
 
 	return world.xyz;
@@ -281,8 +281,8 @@ vec3 getUVCoords(vec3 worldPos)
 	vec3 uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex((ndc.z * 0.5 + 0.5) * u_cameraPlanes.y) / MAX_FROXEL_DEPTH);
 	uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(ndc.z * u_cameraPlanes.y) / 63.0);
 
-	// Try new method:
 	/*
+		TRY NEW METHOD:
 		- Transform z-coord from [-1,1] range to [0,1] range.
 		- Linearise depth value with near and far plane values.
 		- Get real froxel depth with linear depth value.
@@ -292,7 +292,7 @@ vec3 getUVCoords(vec3 worldPos)
 	const float n = u_cameraPlanes.x;
 	const float f = u_cameraPlanes.y;
 
-	//ndc.z = ndc.z * 2.0 - 1.0;
+	ndc.z = ndc.z * 2.0 - 1.0;
 	float linearDepth = (2.0 * n * f) / (f + n - ndc.z * (f - n));
 
 	uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(linearDepth * u_cameraPlanes.y) / 63.0);
@@ -450,7 +450,7 @@ void main()
 	// Get jitter for the current thread with Halton sequences, tranformed to [-0.5, 0.5] range:
 	float jitter = halton(u_frameIndex, 3);
 
-	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter);
+	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
 	float thickness = getSliceThickness(gl_GlobalInvocationID.z);
 
 	float scattering;
@@ -494,13 +494,16 @@ void main()
 	// Reproject to previous frame's results, if the unjittered world position can be projected to previous frame blend results:
 	if (u_useTemporal)
 	{
-		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, 0.0);
+		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, 0.0, u_matrices.invViewProj);
 		vec3 blendUV = getUVCoords(unjitteredWorldPos);
 
 		// If UV coordinates are within previous frame's frustum, blend results:
 		if (all(greaterThanEqual(blendUV, vec3(0.0))) && all(lessThanEqual(blendUV, vec3(1.0))))
 		{
 			vec4 previousFrameResults = texture(u_previousFrameFog, blendUV);
+			imageStore(imgOutput, ivec3(gl_GlobalInvocationID), previousFrameResults);
+			return;
+
 			results = mix(results, previousFrameResults, u_temporalBlend);
 		}
 	}
