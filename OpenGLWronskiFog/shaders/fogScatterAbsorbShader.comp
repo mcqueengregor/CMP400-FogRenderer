@@ -295,7 +295,7 @@ vec3 getUVCoords(vec3 worldPos)
 	ndc.z = ndc.z * 2.0 - 1.0;
 	float linearDepth = (2.0 * n * f) / (f + n - ndc.z * (f - n));
 
-	uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(linearDepth * u_cameraPlanes.y) / 63.0);
+	uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(linearDepth) / 63.0);
 
 	return uv;
 }
@@ -501,8 +501,6 @@ void main()
 		if (all(greaterThanEqual(blendUV, vec3(0.0))) && all(lessThanEqual(blendUV, vec3(1.0))))
 		{
 			vec4 previousFrameResults = texture(u_previousFrameFog, blendUV);
-			imageStore(imgOutput, ivec3(gl_GlobalInvocationID), previousFrameResults);
-			return;
 
 			results = mix(results, previousFrameResults, u_temporalBlend);
 		}
