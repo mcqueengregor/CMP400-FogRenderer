@@ -232,11 +232,14 @@ void App::update(float dt)
 
 void App::render()
 {
+	const glm::mat4 view = m_camera.getViewMat();
+
 	// Set view matrix in UBO:
 	glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(m_camera.getViewMat()));
 
 	// Set inverse view * proj matrix in UBO:
 	glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::inverse(m_proj * m_camera.getViewMat())));
+	glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(m_proj * m_camera.getViewMat()));
 
 	// SHADOWMAP PASS --------------------------------------------------------------------------------------------
 	Renderer::pushDebugGroup(m_shadowmapPassText);
@@ -580,7 +583,7 @@ void App::setupShaders()
 
 void App::setupUBOs()
 {
-	m_matricesUBO = createUBO(4 * sizeof(glm::mat4), 0, 0);
+	m_matricesUBO = createUBO(5 * sizeof(glm::mat4), 0, 0);
 	unsigned int uniformBlockIndex = glGetUniformBlockIndex(m_shader.m_ID, "Matrices");
 	glUniformBlockBinding(m_shader.m_ID, uniformBlockIndex, 0);
 
