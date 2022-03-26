@@ -24,6 +24,8 @@ public:
 	float		getLinear()		{ return m_linear; }
 	float		getQuadratic()	{ return m_quadratic; }
 
+	float*		getPositionPtr() { return &m_position.x; }
+
 	void		setPosition(glm::vec3 newPosition)		{ m_position = newPosition; }
 	void		setPosition(float x, float y, float z)	{ m_position = glm::vec3(x, y, z); }
 	void		setConstant(float newConstant)			{ m_constant = newConstant; }

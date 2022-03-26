@@ -85,12 +85,12 @@ private:
 	float				m_fogScattering			= 1.0f;
 	float				m_fogAbsorption			= 0.0f;
 	glm::vec3			m_fogAlbedo				= glm::vec3(1.0f);
-	float				m_fogPhaseGParam		= -0.25f;
+	float				m_fogPhaseGParam		= 0.0f;
 	float				m_fogDensity			= 0.03f;
 	bool				m_useHeterogeneousFog	= false;
 	bool				m_useShadows			= true;
 	bool				m_useTemporal			= false;
-	float				m_temporalBlendFactor	= 0.95f;
+	bool				m_useJitter				= true;
 
 	// Noise data:
 	float				m_noiseFreq				= 0.15f;
@@ -110,7 +110,7 @@ private:
 	float m_pointLightConstant		= 1.0f;
 	float m_pointLightLinear		= 0.09f;
 	float m_pointLightQuadratic		= 0.032f;
-	float m_lightIntensity			= 150.0f;
+	float m_lightIntensity			= 100.0f;
 
 	// VAOs, VBOs and EBOs:
 	GLuint m_fullscreenQuadVAO;

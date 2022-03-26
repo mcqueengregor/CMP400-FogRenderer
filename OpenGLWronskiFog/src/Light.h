@@ -22,6 +22,10 @@ public:
 	glm::vec3 getDiffuse()	{ return m_diffuse; }
 	glm::vec3 getSpecular() { return m_specular; }
 
+	float* getAmbientPtr() { return &m_ambient.r; }
+	float* getDiffusePtr() { return &m_diffuse.r; }
+	float* getSpecularPtr() { return &m_specular.r; }
+
 	void setAmbient(glm::vec3 newAmbient)		{ m_ambient = newAmbient; }
 	void setAmbient(float x, float y, float z)	{ m_ambient = glm::vec3(x, y, z); }
 	void setDiffuse(glm::vec3 newDiffuse)		{ m_diffuse = newDiffuse; }

@@ -187,15 +187,17 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setFloat("u_fogDensity", m_fogDensity);
 		m_fogScatterAbsorbShader.setFloat("u_lightIntensity", m_lightIntensity);
 		m_fogScatterAbsorbShader.setBool("u_useHetFog", m_useHeterogeneousFog);
+		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
+		m_fogScatterAbsorbShader.setBool("u_useJitter", m_useJitter);
 
+		// Set noise data:
 		m_fogScatterAbsorbShader.setFloat("u_noiseFreq", m_noiseFreq);
 
 		m_noiseOffset += m_windDirection * dt;
 		m_fogScatterAbsorbShader.setVec3("u_noiseOffset", m_noiseOffset);
 		m_fogScatterAbsorbShader.setBool("u_useShadows", m_useShadows);
-		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
-		m_fogScatterAbsorbShader.setFloat("u_temporalBlend", m_temporalBlendFactor);
 
+		// Set light data:
 		m_fogScatterAbsorbShader.setPointLight("u_pointLights[0]", m_light);
 		m_fogScatterAbsorbShader.setInt("u_numLights", 1);
 		m_fogScatterAbsorbShader.setFloat("u_lightFarPlane", m_lightViewPlanes.y);
@@ -456,13 +458,12 @@ void App::gui()
 			ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
 			ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
 			ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
-			ImGui::Checkbox("Use shadowmaps?", &m_useShadows);
 			ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
-			ImGui::SliderFloat("Temporal blend factor", &m_temporalBlendFactor, 0.0f, 1.0f);
+			ImGui::Checkbox("Use sample jittering?", &m_useJitter);
 		}
 		if (ImGui::CollapsingHeader("Light parameters"))
 		{
-			ImGui::SliderFloat3("Light position", &m_pointLightPosition.r, -10.0f, 10.0f);
+			ImGui::SliderFloat3("Light position", &m_pointLightPosition.x, -50.0f, 50.0f);
 			ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse.r, 0.0f, 1.0f);
 			ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.2f, 0.0f);
 			ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
@@ -579,6 +580,7 @@ void App::setupShaders()
 	m_fogScatterAbsorbShader.use();
 	m_fogScatterAbsorbShader.setInt("u_pointShadowmapArray", 0);
 	m_fogScatterAbsorbShader.setInt("u_previousFrameFog", 1);
+	m_fogScatterAbsorbShader.setVec3("u_fogTexSize", c_fogTexSize);
 }
 
 void App::setupUBOs()

@@ -28,6 +28,7 @@ void main()
 	float froxelSampleZ = getFroxelSliceIndex(froxelDepth) / MAX_FROXEL_SLICE_INDEX;	// Get froxel index, transformed to [0,1] range.
 	vec3 fogSamplePos = vec3(texCoords, froxelSampleZ);
 
+	fogSamplePos.z = froxelDepth / u_farPlane;
 	vec4 sampledFog = texture(u_fogAccumTex, fogSamplePos);
 	vec3 inScattering = sampledFog.rgb;
 	float transmittance = sampledFog.a;

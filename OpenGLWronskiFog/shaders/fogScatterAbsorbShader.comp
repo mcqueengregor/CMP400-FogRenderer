@@ -6,6 +6,8 @@ layout (rgba32f, binding = 1) uniform image3D imgOutput;
 
 #define PI 3.141592653589793238462643383279
 #define MAX_LIGHTS 8
+#define TEX_DIM vec3(160, 90, 64)
+
 const float MAX_FROXEL_DEPTH = 467.5060701;		// Given by FroxelDepth(63), assuming imgOutput has a z-depth of 64.
 const float MAX_COMPUTE_Z_DEPTH = 63.0;
 
@@ -35,12 +37,13 @@ struct Ray
 	vec3 direction;
 };
 
-uniform mat4 u_lightMatrices[6];
 
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
 uniform vec3	u_cameraForward;
 uniform vec2	u_cameraPlanes;
+
+uniform vec3 u_fogTexSize;	// Added since imageSize() seems to return zeroes at random, for some reason.
 
 // Fog data uniforms:
 uniform vec3	u_albedo;
@@ -61,6 +64,7 @@ uniform vec3	u_noiseOffset;
 uniform int			u_numLights;
 uniform float		u_lightFarPlane;
 uniform PointLight	u_pointLights[MAX_LIGHTS];
+uniform mat4		u_lightMatrices[6 * MAX_LIGHTS];
 
 // Texture samplers:
 uniform sampler2DArray	u_pointShadowmapArray;
@@ -68,11 +72,10 @@ uniform sampler3D		u_previousFrameFog;
 uniform sampler2D		u_LUT;
 
 // Control booleans:
-uniform bool	u_useShadows;
+uniform bool	u_useJitter;
 uniform bool	u_useTemporal;
 uniform bool	u_useLUT;
 uniform bool	u_KorH;	// 'true' = use Kovalovs LUT, 'false' = use Hoobler LUT.
-uniform float	u_temporalBlend;
 
 /* UTILITY FUNCTIONS: ---------------------------------------------------------------------------------- */
 
@@ -190,6 +193,7 @@ float getSliceThickness(uint slice)
 	return getFroxelDepth(slice + 1) - getFroxelDepth(slice);
 }
 
+
 float getSliceIndex(float depth)
 {
 	const float ln2 = 0.6931471806;	// ln(2).
@@ -250,6 +254,12 @@ float calcShadow(vec3 worldPos)
 }
 
 // Compute thread ID to world position logic adapted from https://github.com/diharaw/volumetric-lighting/blob/main/src/shaders/common.glsl:
+float getFroxelThickness(uint z)
+{
+	const float zTexSize = imageSize(imgOutput).z;
+	return exp(-(zTexSize - z - 1.0) / zTexSize);
+}
+
 float uvToNDC(float z)
 {
 	const float bias = 0.002;
@@ -294,6 +304,41 @@ vec3 getUVCoords(vec3 worldPos, mat4 viewProj)
 	float linearDepth = (2.0 * n * f) / (f + n - ndc.z * (f - n));
 
 	vec3 uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(linearDepth) / 63.0);
+
+	return uv;
+}
+
+vec3 getWorldPosNew(uvec3 globalThreadID, float jitter, mat4 invViewProj)
+{
+	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
+	float farOverNear = far / near;
+	
+	// Get UV coords from compute thread ID (distribute depth exponentially):
+	float viewZ = near * pow(farOverNear, (globalThreadID.z + jitter) / (u_fogTexSize.z - 1));
+	vec3 uv = vec3(globalThreadID.xy / u_fogTexSize.xy, viewZ / far);
+
+	// Get NDC from UV coords (convert to exponential z-depth distribution from linear compute ID):
+	float ndcZ = (1.0 / uv.z - farOverNear) / (1.0 - farOverNear);
+	vec3 ndc = vec3(uv.xy, ndcZ) * 2.0 - 1.0;
+
+	vec4 world = invViewProj * vec4(ndc, 1.0);
+	world.xyz /= world.w;
+
+	return world.xyz;
+}
+
+vec3 getUVCoordsNew(vec3 worldPos, mat4 viewProj)
+{
+	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
+	float farOverNear = far / near;
+
+	vec4 ndc = viewProj * vec4(worldPos, 1.0);
+	ndc.xyz /= ndc.w;
+
+	vec3 uv = ndc.xyz * 0.5 + 0.5;
+	float uvZ = 1.0 / ((1.0 - farOverNear) * uv.z + farOverNear);
+	vec2 params = vec2(u_fogTexSize.z / log2(farOverNear), -(u_fogTexSize.z * log2(near) / log2(farOverNear)));
+	uv.z = max(log2(uvZ * far) * params.x + params.y, 0.0) / u_fogTexSize.z;
 
 	return uv;
 }
@@ -448,11 +493,14 @@ void main()
 	// Get jitter for the current thread with Halton sequences, tranformed to [-0.5, 0.5] range:
 	float jitter = halton(u_frameIndex, 3);
 
-	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
-	float thickness = getSliceThickness(gl_GlobalInvocationID.z);
+	if (!u_useJitter)
+		jitter = 0.0;
 
-	float scattering;
-	float absorption;
+	vec3 jitteredWorldPos = getWorldPosNew(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
+	float thickness = getFroxelThickness(gl_GlobalInvocationID.z);
+
+	float scattering = u_scatteringCoefficient * u_fogDensity;
+	float absorption = u_absorptionCoefficient * u_fogDensity;
 
 	if (u_useHetFog)
 	{
@@ -462,13 +510,8 @@ void main()
 		density = density * 0.5 + 0.5;
 
 		// Calculate scattering and absorption for this froxel:
-		scattering = u_scatteringCoefficient * thickness * density * u_fogDensity;
-		absorption = u_absorptionCoefficient * thickness * density * u_fogDensity;
-	}
-	else
-	{
-		scattering = u_scatteringCoefficient * thickness * u_fogDensity;
-		absorption = u_absorptionCoefficient * thickness * u_fogDensity;
+		scattering *= density;
+		absorption *= density;
 	}
 
 	vec3 lighting = vec3(0.0);
@@ -476,10 +519,7 @@ void main()
 	// Accumulate lighting at this froxel:
 	for (uint i = 0; i < u_numLights; ++i)
 	{
-		vec3 light = calcPointLight(i, jitteredWorldPos) * phaseHG(i, jitteredWorldPos, u_phaseGParam);
-
-		if (u_useShadows)
-			light *= calcShadow(jitteredWorldPos);
+		vec3 light = calcPointLight(i, jitteredWorldPos) * phaseHG(i, jitteredWorldPos, u_phaseGParam) * calcShadow(jitteredWorldPos);
 
 		lighting += light;
 	}
@@ -492,15 +532,15 @@ void main()
 	// Reproject to previous frame's results, if the unjittered world position can be projected to previous frame blend results:
 	if (u_useTemporal)
 	{
-		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, 0.0, u_matrices.invViewProj);
-		vec3 blendUV = getUVCoords(unjitteredWorldPos, u_matrices.prevViewProj);
+		vec3 unjitteredWorldPos = getWorldPosNew(gl_GlobalInvocationID, 0.0, u_matrices.invViewProj);
+		vec3 blendUV = getUVCoordsNew(unjitteredWorldPos, u_matrices.prevViewProj);
 
 		// If UV coordinates are within previous frame's frustum, blend results:
 		if (all(greaterThanEqual(blendUV, vec3(0.0))) && all(lessThanEqual(blendUV, vec3(1.0))))
 		{
 			vec4 previousFrameResults = texture(u_previousFrameFog, blendUV);
 
-			results = mix(results, previousFrameResults, u_temporalBlend);
+			results = mix(results, previousFrameResults, 0.95);
 		}
 	}
 
