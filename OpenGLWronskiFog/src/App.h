@@ -46,6 +46,7 @@ private:
 	void setupUBOs();
 	void setupModelsAndTextures();
 	void setupFBOs();
+	void setupLUTs();
 
 	GLFWwindow* initWindow();
 	GLuint		loadTexture(const char* filepath, bool flipY = false);
@@ -64,20 +65,29 @@ private:
 	GLFWwindow* m_window;
 	Camera		m_camera;
 
-	// Shaders:
+	// Shaders:											/* GEOMETRY RENDERING: */
 	Shader m_shader;									// Simple model rendering and texturing shader (VS/FS).
 	Shader m_singleColourShader;						// As above, but renders magenta rather than texture information (VS/FS).
 	Shader m_instanceShader;							// Instanced model rendering and texturing shader (VS/FS).
 	Shader m_depthShader;								// As above, but outputting depth as colour information (VS/FS).
 	Shader m_instanceDepthShader;						// Instanced shader but outputting depth as colour (VS/FS).
 	Shader m_fullscreenShader;							// Shader with zero matrix operations and texturing (VS/FS).
+
+														/* FOG CALCULATION/COMPOSITION: */
 	Shader m_fogScatterAbsorbShader;					// Fog scattering and absorption evaluation shader (CS).
 	Shader m_fogAccumShader;							// Fog accumulation shader using results of above S&A shader (CS).
 	Shader m_fogCompositeShader;						// Fullscreen rendering, combining fog and opaque geometry rendering results (VS/FS).
+
+														/* SHADOWMAPPING AND BLURRING: */
 	Shader m_varianceShadowmapLayeredShader;			// Draws variance depth data (depth and depth * depth) to shadow map texture array (VS/GS/FS).
 	Shader m_instanceVarianceShadowmapLayeredShader;	// As above, but with instanced rendering (VS/GS/FS).
 	Shader m_horiBlurLayeredShader;						// Performs horizontal Gaussian blur on layers of a shadow map texture array (VS/GS/FS).
 	Shader m_vertBlurLayeredShader;						// As above, but blurring vertically (VS/GS/FS).
+
+														/* FOG LUT CREATION: */
+	Shader m_kovalovsLUTShader;							// Creates LUT using Kovalovs' method (CS).
+	Shader m_hooblerAccumLUTShader;						// Creates LUT using Hoobler's method (accumulation stage) (CS).
+	Shader m_hooblerSumLUTShader;						// Creates LUT using Hoobler's method (sum stage) (CS).
 
 	// Misc shader data (uniforms and dispatch group sizes):
 	// Fog data:
@@ -164,6 +174,11 @@ private:
 	GLuint	m_oddFogScatterAbsorbTex;
 	
 	GLuint	m_fogAccumTex;
+
+	GLuint m_kovalovsLUT;				// LUT created with Kovalovs' method.
+	GLuint m_hooblerAccumLUT;			// LUT created with Hoobler's method (accumulation stage).
+	GLuint m_hooblerSumLUT;				// LUT "	"	"	"	"	"	"	 (sum stage).
+	GLuint m_hooblerScatterAccumTex;	// Intermediate texture used for creating Hoobler's sum LUT.
 
 	// Misc model/texture data:
 	glm::vec3		 m_planetPosition;

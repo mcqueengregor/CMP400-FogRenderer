@@ -558,13 +558,19 @@ void App::setupShaders()
 	m_instanceShader.loadShader("shaders/instancedShader.vert", "shaders/textureShader.frag");
 	m_instanceDepthShader.loadShader("shaders/instancedShader.vert", "shaders/depthShader.frag");
 	m_fullscreenShader.loadShader("shaders/fullscreenShader.vert", "shaders/fullscreenShader.frag");
+	
 	m_fogScatterAbsorbShader.loadShader("shaders/fogScatterAbsorbShader.comp");
 	m_fogAccumShader.loadShader("shaders/fogAccumulationShader.comp");
 	m_fogCompositeShader.loadShader("shaders/fullscreenShader.vert", "shaders/fogCompositeShader.frag");
+	
 	m_varianceShadowmapLayeredShader.loadShader("shaders/worldSpaceShader.vert", "shaders/varianceShadowShader.frag", "shaders/layeredShadowShader.geom");
 	m_instanceVarianceShadowmapLayeredShader.loadShader("shaders/instancedShadowShader.vert", "shaders/varianceShadowShader.frag", "shaders/layeredShadowShader.geom");
 	m_horiBlurLayeredShader.loadShader("shaders/fullscreenShader.vert", "shaders/horiBlurArrayShader.frag", "shaders/layeredBlurShader.geom");
 	m_vertBlurLayeredShader.loadShader("shaders/fullscreenShader.vert", "shaders/vertBlurArrayShader.frag", "shaders/layeredBlurShader.geom");
+
+	m_kovalovsLUTShader.loadShader("shaders/kovalovsLUTShader.comp");
+	m_hooblerAccumLUTShader.loadShader("shaders/hooblerAccumLUTShader.comp");
+	m_hooblerSumLUTShader.loadShader("shaders/hooblerSumLUTShader.comp");
 
 	// Setup constant uniform data:
 	m_fogCompositeShader.use();

@@ -1,0 +1,44 @@
+#version 430 core
+layout (local_size_x = 1024, local_size_y = 1) in;
+layout (r32f, binding = 6) uniform image2D finalLUT;
+
+#define PI 3.141592653589793238462643383279
+
+uniform float u_gParam;
+
+uniform float u_constant;
+uniform float u_linear;
+uniform float u_quadratic;
+
+float PhongAttenuation(float dist)
+{
+	return 1.0 / (u_quadratic * (dist * dist) + u_linear * dist + u_constant);
+}
+
+float PhaseHG(float theta, float g)
+{
+	return 1 / (4 * PI) * ((1 - g * g) / pow(1 + g * g - 2 * g * theta, 3 / 2));
+}
+
+void main()
+{
+	const vec2 dim = imageSize(finalLUT);
+	const ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+	vec2 normCoords = coords / dim;
+
+	const vec2 centre = vec2(0.5, 0.5);
+	vec2 dir = normCoords - centre;
+
+	float dist = length(dir);
+	float att = PhongAttenuation(dist);
+
+	float phase;
+
+	// Avoid NaN error if current pixel is centre and thus dir is zero vector:
+	if (length(dir) == 0.0)
+		phase = PhaseHG(1.0, u_gParam);
+	else
+		phase = PhaseHG(dot(normalize(dir), vec2(0.0, 1.0)), u_gParam); 
+
+	imageStore(finalLUT, coords, vec4(phase * att, 0.0, 0.0, 1.0));
+}

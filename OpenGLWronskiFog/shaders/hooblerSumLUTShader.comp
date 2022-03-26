@@ -1,0 +1,32 @@
+#version 430 core
+#define LOCAL_SIZE_X 32
+#define LOCAL_SIZE_Y 4
+
+layout (local_size_x = LOCAL_SIZE_X, local_size_y = LOCAL_SIZE_Y) in;
+layout (rgba32f, binding = 4) uniform image2D finalLUT;
+layout (rgba32f, binding = 5) uniform image2D summedLUT;
+
+shared vec3 sOffset[LOCAL_SIZE_Y];
+
+void main()
+{
+    const vec2 dim = vec2(1024);
+    ivec2 globalCoords = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 localCoords = ivec2(gl_LocalInvocationID.xy);
+
+    if (localCoords.x == 0)
+        sOffset[localCoords.y] = vec3(0.0);
+    
+    for (uint t = 0; t < dim.x; t += LOCAL_SIZE_X)
+    {
+        ivec2 texCoords = globalCoords + ivec2(t, 0);
+        vec4 s = imageLoad(finalLUT, texCoords);
+
+        vec3 v = vec3(s.rgb * s.a) + sOffset[localCoords.y];
+        if (localCoords.x == (dim.x - 1))
+            sOffset[localCoords.y] = v;
+
+        s.a *= dim.y / 32.0;
+        imageStore(summedLUT, texCoords, vec4(v / s.a, s.a));
+    }
+}

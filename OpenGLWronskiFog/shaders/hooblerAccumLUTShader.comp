@@ -1,0 +1,90 @@
+#version 430 core
+layout (local_size_x = 32, local_size_y = 8) in;
+layout (rgba32f, binding = 3) uniform image2D accumBuffer;
+layout (rgba32f, binding = 4) uniform image2D finalLUT;
+layout (rgba32f, binding = 5) uniform image2D summedLUT;
+
+#define PI 3.141592653589793238462643383279
+
+// Calculation parameters:
+uniform vec3 u_scatteringCoefficients;
+uniform float u_tau;
+uniform float u_distance;
+uniform float u_gParam;
+
+// Hoobler LUT parameters:
+uniform float u_vecLength;
+uniform float u_lightZFar;
+
+const float c_lightZFar = 50.0;
+
+// Light data:
+uniform float u_constant;
+uniform float u_linear;
+uniform float u_quadratic;
+
+float PhongAttenuation(float dist)
+{
+	return 1.0 / (u_constant + u_linear * dist + u_quadratic * (dist * dist));
+}
+
+float PhaseHG(float theta, float g)
+{
+	return 1.0 / (4.0 * PI) * ((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * theta, 3.0 / 2.0));
+}
+
+float PhaseRayleigh(float theta)
+{
+    return (3.0 / 16.0 * PI) * (1.0 + pow(cos(theta), 2));
+}
+
+vec3 BeerLambert(float tau, vec3 scatteringCoefficients)
+{
+	return exp(-tau * scatteringCoefficients);
+}
+
+void main()
+{
+	const vec2 dim = imageSize(accumBuffer);
+	const ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 normCoords = (coords / dim);
+
+    float cosResult = -cos(normCoords.y * PI);  // Get the cosine of the current angle between view and viewer-to-light vectors (increases across y-axis).
+    float vecLengthSqr = u_vecLength * u_vecLength;
+
+    float t0 = max(0.0, u_vecLength - u_lightZFar);
+    float tRange = u_vecLength + u_lightZFar - t0;
+    float t = t0 + (normCoords.x * tRange);
+
+    float WdotV = cosResult * u_vecLength;
+    float dSqr = max(0.0, vecLengthSqr + 2.0 * WdotV * t + t * t);
+    float d = sqrt(dSqr);
+    float cosPhi = (t > 0 && d > 0) ? (t * t + dSqr - vecLengthSqr) / (2 * t * d) : cosResult;
+
+    vec3 extinction = exp(-u_scatteringCoefficients * (d + t));
+    float phase = PhaseHG(-cosPhi, u_gParam);
+    float attenuation = PhongAttenuation(d);
+        
+    float scattering = phase * attenuation;
+
+    scattering *= tRange / dim.x;
+
+	imageStore(accumBuffer, coords, vec4(vec3(scattering), 1.0));
+
+    barrier();
+
+    vec4 newColour = vec4(1.0);
+
+    for (uint d = 1; d < 32; d *= 2)
+        if (coords.x >= d)
+        {
+            const vec4 originalColour = imageLoad(accumBuffer, coords);
+            newColour = originalColour + imageLoad(accumBuffer, coords - ivec2(d, 0.0));
+            imageStore(finalLUT, coords, newColour);
+        }
+
+    const float LUT_SCALE = 32.0 / 32768.0;
+    const vec4 finalColour = vec4(newColour.rgb / LUT_SCALE, LUT_SCALE);
+
+    imageStore(finalLUT, coords, finalColour);
+}
