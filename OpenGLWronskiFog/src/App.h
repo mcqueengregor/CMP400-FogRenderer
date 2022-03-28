@@ -46,14 +46,15 @@ private:
 	void setupUBOs();
 	void setupModelsAndTextures();
 	void setupFBOs();
-	void setupLUTs();
+	void generateLUTs();
 
 	GLFWwindow* initWindow();
 	GLuint		loadTexture(const char* filepath, bool flipY = false);
-	GLuint		createTexture(GLuint width, GLuint height);
-	GLuint		createTexture(glm::uvec2 dim);
-	GLuint		createTexture(GLuint width, GLuint height, GLuint depth);
-	GLuint		createTexture(glm::uvec3 dim);
+	GLuint		createTexture(GLuint width, GLuint height, GLenum format);
+	GLuint		createTexture(glm::uvec2 dim, GLenum format);
+	GLuint		createTexture(GLuint width, GLuint height, GLuint depth, GLenum format);
+	GLuint		createTexture(glm::uvec3 dim, GLenum format);
+	GLenum		getTextureInternalFormat(GLenum format);
 	GLuint		createFBO(glm::uvec2 dim, GLuint& colourTexBuffer);
 	GLuint		createFBO(glm::uvec2 dim, GLuint& colourTexBuffer, GLuint& depthTexBuffer);
 	GLuint		createUBO(size_t size, GLuint index, GLuint offset);
@@ -103,13 +104,14 @@ private:
 	bool				m_useJitter				= true;
 
 	// Noise data:
-	float				m_noiseFreq				= 0.15f;
-	glm::vec3			m_noiseOffset			= glm::vec3(0.0f);
-	glm::vec3			m_windDirection			= glm::vec3(1.0f, 0.0f, 0.0f);
+	float				m_noiseFreq			= 0.15f;
+	glm::vec3			m_noiseOffset		= glm::vec3(0.0f);
+	glm::vec3			m_windDirection		= glm::vec3(1.0f, 0.0f, 0.0f);
 
 	// Shadowmap data:
-	const glm::uvec2	c_shadowmapDim			= glm::uvec2(1024);
-	glm::vec2			m_lightViewPlanes		= glm::vec2(0.1f, 100.0f);
+	const glm::uvec2	c_shadowmapDim		= glm::uvec2(1024);
+	const glm::uvec2	c_LUTDim			= glm::uvec2(1024);
+	glm::vec2			m_lightViewPlanes	= glm::vec2(0.1f, 100.0f);
 
 	// Lights:
 	PointLight m_light;
@@ -206,6 +208,7 @@ private:
 	bool	m_outputDepth = false;
 	bool	m_applyFog = false;
 	bool	m_evenFrame = true;	// Boolean used to alternate between which 3D fog texture to write to. Other texture is used for temporal blending.
+	bool	m_hooblerOrKovalovs = false;	// 'false' = Hoobler, 'true' = Kovalovs.
 
 	double	m_originalCursorPosX;
 	double	m_originalCursorPosY;

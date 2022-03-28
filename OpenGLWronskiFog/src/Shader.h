@@ -42,7 +42,7 @@ public:
 
 private:
 	GLuint setupStage(const char* path, GLuint type);
-	void linkShader();
+	void linkShader(const char* path);
 };
 
 #endif // !SHDAER_H

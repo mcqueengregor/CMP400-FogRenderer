@@ -7,8 +7,8 @@ layout (rgba32f, binding = 5) uniform image2D summedLUT;
 #define PI 3.141592653589793238462643383279
 
 // Calculation parameters:
-uniform vec3 u_scatteringCoefficients;
-uniform float u_tau;
+uniform float u_scatteringCoefficient;
+uniform float u_absorptionCoefficient;
 uniform float u_distance;
 uniform float u_gParam;
 
@@ -25,22 +25,12 @@ uniform float u_quadratic;
 
 float PhongAttenuation(float dist)
 {
-	return 1.0 / (u_constant + u_linear * dist + u_quadratic * (dist * dist));
+	return 1.0 / (u_quadratic * (dist * dist) + u_linear * dist + u_constant);
 }
 
 float PhaseHG(float theta, float g)
 {
 	return 1.0 / (4.0 * PI) * ((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * theta, 3.0 / 2.0));
-}
-
-float PhaseRayleigh(float theta)
-{
-    return (3.0 / 16.0 * PI) * (1.0 + pow(cos(theta), 2));
-}
-
-vec3 BeerLambert(float tau, vec3 scatteringCoefficients)
-{
-	return exp(-tau * scatteringCoefficients);
 }
 
 void main()
@@ -52,19 +42,19 @@ void main()
     float cosResult = -cos(normCoords.y * PI);  // Get the cosine of the current angle between view and viewer-to-light vectors (increases across y-axis).
     float vecLengthSqr = u_vecLength * u_vecLength;
 
-    float t0 = max(0.0, u_vecLength - u_lightZFar);
+    float t0 = max(u_vecLength - u_lightZFar, 0.0);
     float tRange = u_vecLength + u_lightZFar - t0;
     float t = t0 + (normCoords.x * tRange);
 
     float WdotV = cosResult * u_vecLength;
-    float dSqr = max(0.0, vecLengthSqr + 2.0 * WdotV * t + t * t);
+    float dSqr = max(vecLengthSqr + 2.0 * WdotV * t + t * t, 0.0);
     float d = sqrt(dSqr);
     float cosPhi = (t > 0 && d > 0) ? (t * t + dSqr - vecLengthSqr) / (2 * t * d) : cosResult;
 
-    vec3 extinction = exp(-u_scatteringCoefficients * (d + t));
+    float extinction = exp(-((u_scatteringCoefficient + u_absorptionCoefficient) * (d + t)));
     float phase = PhaseHG(-cosPhi, u_gParam);
     float attenuation = PhongAttenuation(d);
-        
+
     float scattering = phase * attenuation;
 
     scattering *= tRange / dim.x;

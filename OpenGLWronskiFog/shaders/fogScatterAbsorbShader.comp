@@ -6,10 +6,6 @@ layout (rgba32f, binding = 1) uniform image3D imgOutput;
 
 #define PI 3.141592653589793238462643383279
 #define MAX_LIGHTS 8
-#define TEX_DIM vec3(160, 90, 64)
-
-const float MAX_FROXEL_DEPTH = 467.5060701;		// Given by FroxelDepth(63), assuming imgOutput has a z-depth of 64.
-const float MAX_COMPUTE_Z_DEPTH = 63.0;
 
 layout (std140) uniform Matrices
 {
@@ -26,6 +22,8 @@ struct PointLight
     vec3 position;
     vec3 diffuse;
 
+	float radius;
+
     float constant;
     float linear;
     float quadratic;
@@ -36,7 +34,6 @@ struct Ray
 	vec3 origin;
 	vec3 direction;
 };
-
 
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
@@ -254,61 +251,21 @@ float calcShadow(vec3 worldPos)
 }
 
 // Compute thread ID to world position logic adapted from https://github.com/diharaw/volumetric-lighting/blob/main/src/shaders/common.glsl:
-float getFroxelThickness(uint z)
+float getFroxelThicknessExp(uint z)
 {
-	const float zTexSize = imageSize(imgOutput).z;
-	return exp(-(zTexSize - z - 1.0) / zTexSize);
+	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
+	float farOverNear = far / near;
+	return near * pow(farOverNear, (z + 1) / (u_fogTexSize.z - 1)) - near * pow(farOverNear, z / (u_fogTexSize.z - 1));
 }
 
-float uvToNDC(float z)
+float getFroxelThicknessLin()
 {
-	const float bias = 0.002;
-	float reflected = 1 / (z + bias) - MAX_FROXEL_DEPTH;
-	return reflected / (1 - MAX_FROXEL_DEPTH);
+	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
+	const int numThreads = int(u_fogTexSize.z) - 1;
+	return (far - near) / numThreads;
 }
 
 vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
-{
-	// Get UV coordinates from current thread ID:
-	vec2 frameSize = imageSize(imgOutput).xy;
-	vec3 uv = vec3(globalThreadID.xy / frameSize, getFroxelDepth(globalThreadID.z + jitter) / MAX_FROXEL_DEPTH);
-
-	// Get NDC equivalent of this thread's UV coordinates:
-	vec3 ndc = 2.0 * vec3(uv.xy, uvToNDC(uv.z)) - 1.0;
-
-	// Use inverse view * proj matrix to get world position:
-	vec4 world = invViewProj * vec4(ndc, 1.0);
-	world.xyz /= world.w;
-
-	return world.xyz;
-}
-
-vec3 getUVCoords(vec3 worldPos, mat4 viewProj)
-{
-	// Transform world position to NDC of previous frame with previous frame's view*proj matrix:
-	vec4 ndc = viewProj * vec4(worldPos, 1.0);
-	ndc.xyz /= ndc.w;
-
-	/*
-		TRY NEW METHOD:
-		- Transform z-coord from [-1,1] range to [0,1] range.
-		- Linearise depth value with near and far plane values.
-		- Get real froxel depth with linear depth value.
-		- Get UV coord with inverse of Kovalovs' depth function.
-	*/
-
-	const float n = u_cameraPlanes.x;
-	const float f = u_cameraPlanes.y;
-
-	ndc.z = ndc.z * 2.0 - 1.0;
-	float linearDepth = (2.0 * n * f) / (f + n - ndc.z * (f - n));
-
-	vec3 uv = vec3(ndc.xy * 0.5 + 0.5, getSliceIndex(linearDepth) / 63.0);
-
-	return uv;
-}
-
-vec3 getWorldPosNew(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 {
 	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
 	float farOverNear = far / near;
@@ -327,7 +284,7 @@ vec3 getWorldPosNew(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 	return world.xyz;
 }
 
-vec3 getUVCoordsNew(vec3 worldPos, mat4 viewProj)
+vec3 getUVCoords(vec3 worldPos, mat4 viewProj)
 {
 	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
 	float farOverNear = far / near;
@@ -360,7 +317,6 @@ vec3 calcPointLight(uint lightIndex, vec3 worldPos)
 }
 
 /* KOVALOVS LUT SAMPLING: ------------------------------------------------------------------------------ */
-
 bool raySphereIntersection(Ray froxelRay, uint lightIndex, float lightRadius, out float t0, out float t1)
 {
 	vec3 froxelToLight = u_pointLights[lightIndex].position - froxelRay.origin;
@@ -397,14 +353,14 @@ vec4 getKovalovsUVCoords(Ray froxelRay, uint lightIndex, float lightRadius, vec3
 	if (floatEqual(dotResult, 1.0) || vectorEqual(ab, vec3(0.0)) || vectorEqual(ac, vec3(0.0)))
 	{
 		if (dot(ab, froxelRay.direction) > 0.0)
-			uv0 = vec2(0.5, 0.5 - ((length(ab) / lightRadius) * 0.5));
-		else
 			uv0 = vec2(0.5, 0.5 + ((length(ab) / lightRadius) * 0.5));
+		else
+			uv0 = vec2(0.5, 0.5 - ((length(ab) / lightRadius) * 0.5));
 
 		if (dot(ac, froxelRay.direction) > 0.0)
-			uv1 = vec2(0.5, 0.5 - ((length(ac) / lightRadius) * 0.5));
-		else
 			uv1 = vec2(0.5, 0.5 + ((length(ac) / lightRadius) * 0.5));
+		else
+			uv1 = vec2(0.5, 0.5 - ((length(ac) / lightRadius) * 0.5));
 
 		return vec4(uv0.xy, uv1.xy);
 	}
@@ -472,18 +428,18 @@ float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex, f
 	return abs(scattering0 - scattering1);
 }
 
+/* HOOBLER LUT SAMPLING: ------------------------------------------------------------------------------- */
 vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex, float lightRadius)
 {
 	vec3 lightToCamera = u_cameraPos - u_pointLights[lightIndex].position;
 	float lightDist = length(lightToCamera);
-	vec3 cameraToFroxel = worldPos - u_cameraPos;
-	float froxelDist = length(cameraToFroxel);
+	vec3 cameraToFroxel = normalize(worldPos - u_cameraPos);
 
-	float t0 = max(0.0, lightDist - lightRadius);
+	float t0 = max(lightDist - lightRadius, 0.0);
 	float tRange = lightRadius + lightDist - t0;
 
-	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(lightToCamera, cameraToFroxel)) / PI);
-	const vec4 scattering = texture(u_LUT, uv);
+	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(lightToCamera / lightDist, cameraToFroxel)) / PI);
+	vec4 scattering = texture(u_LUT, uv);
 
 	return scattering.rgb * scattering.a;
 }
@@ -491,13 +447,15 @@ vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex, float lightRadius)
 void main()
 {
 	// Get jitter for the current thread with Halton sequences, tranformed to [-0.5, 0.5] range:
-	float jitter = halton(u_frameIndex, 3);
+	float jitter;
 
-	if (!u_useJitter)
+	if (u_useJitter)
+		jitter = halton(u_frameIndex, 3);
+	else
 		jitter = 0.0;
 
-	vec3 jitteredWorldPos = getWorldPosNew(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
-	float thickness = getFroxelThickness(gl_GlobalInvocationID.z);
+	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
+	float thickness = getFroxelThicknessExp(gl_GlobalInvocationID.z);
 
 	float scattering = u_scatteringCoefficient * u_fogDensity;
 	float absorption = u_absorptionCoefficient * u_fogDensity;
@@ -519,7 +477,29 @@ void main()
 	// Accumulate lighting at this froxel:
 	for (uint i = 0; i < u_numLights; ++i)
 	{
-		vec3 light = calcPointLight(i, jitteredWorldPos) * phaseHG(i, jitteredWorldPos, u_phaseGParam) * calcShadow(jitteredWorldPos);
+		vec3 light;
+		
+		if (!u_useLUT)
+			light = calcPointLight(i, jitteredWorldPos) * phaseHG(i, jitteredWorldPos, u_phaseGParam) * calcShadow(jitteredWorldPos);
+		else
+		{
+			const float radius = 5.0;	// **TEMPORARY VALUE, WRITE RADIUS TO POINT LIGHT UNIFORMS**
+
+			// Sample from Kovalovs' LUT:
+			if (u_KorH)
+			{
+				Ray froxelRay;
+				froxelRay.origin = jitteredWorldPos;
+				froxelRay.direction = normalize(jitteredWorldPos - u_cameraPos);
+
+				light = u_pointLights[i].diffuse * sampleKovalovsLUT(froxelRay, thickness, i, 5.0) * calcShadow(jitteredWorldPos);
+			}
+			// Sample from Hoobler's LUT:
+			else
+			{
+				light = u_pointLights[i].diffuse * sampleHooblerLUT(jitteredWorldPos, i, radius) * calcShadow(jitteredWorldPos);
+			}
+		}
 
 		lighting += light;
 	}
@@ -532,8 +512,8 @@ void main()
 	// Reproject to previous frame's results, if the unjittered world position can be projected to previous frame blend results:
 	if (u_useTemporal)
 	{
-		vec3 unjitteredWorldPos = getWorldPosNew(gl_GlobalInvocationID, 0.0, u_matrices.invViewProj);
-		vec3 blendUV = getUVCoordsNew(unjitteredWorldPos, u_matrices.prevViewProj);
+		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, 0.0, u_matrices.invViewProj);
+		vec3 blendUV = getUVCoords(unjitteredWorldPos, u_matrices.prevViewProj);
 
 		// If UV coordinates are within previous frame's frustum, blend results:
 		if (all(greaterThanEqual(blendUV, vec3(0.0))) && all(lessThanEqual(blendUV, vec3(1.0))))

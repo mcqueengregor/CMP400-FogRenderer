@@ -28,7 +28,7 @@ void Shader::loadShader(const char* computePath)
 	glAttachShader(m_ID, c);
 	glLinkProgram(m_ID);
 
-	linkShader();
+	linkShader(computePath);
 	glDeleteShader(c);
 }
 
@@ -44,7 +44,7 @@ void Shader::loadShader(const char* vertexPath, const char* fragmentPath)
 	glAttachShader(m_ID, f);
 	glLinkProgram(m_ID);
 
-	linkShader();
+	linkShader(vertexPath);
 	glDeleteShader(v);
 	glDeleteShader(f);
 }
@@ -63,7 +63,7 @@ void Shader::loadShader(const char* vertexPath, const char* fragmentPath, const 
 	glAttachShader(m_ID, g);
 	glLinkProgram(m_ID);
 
-	linkShader();
+	linkShader(vertexPath);
 	glDeleteShader(v);
 	glDeleteShader(f);
 	glDeleteShader(g);
@@ -185,7 +185,7 @@ GLuint Shader::setupStage(const char* path, GLuint type)
 	return shaderHandle;
 }
 
-void Shader::linkShader()
+void Shader::linkShader(const char* path)
 {
 	int success;
 	char infoLog[512];
@@ -198,5 +198,5 @@ void Shader::linkShader()
 		std::cout << "SHADER PROGRAM LINKING ERROR:\n" << infoLog << std::endl;
 	}
 	else
-		std::cout << "Shader program compilation complete!" << std::endl;
+		std::cout << "Shader program compilation complete! (" << path << ")" << std::endl;
 }

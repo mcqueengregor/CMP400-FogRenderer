@@ -62,6 +62,8 @@ void App::run()
 	setupUBOs();
 	setupFBOs();
 
+	generateLUTs();
+
 	m_camera.setPosition(0.0f, 1.0f, 3.0f);
 
 	glEnable(GL_DEPTH_TEST);
@@ -311,6 +313,10 @@ void App::render()
 			FogRenderer::bindImage(1, m_oddFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
 			Renderer::bindTex(1, GL_TEXTURE_3D, m_evenFogScatterAbsorbTex);
 		}
+		if (m_hooblerOrKovalovs)
+			Renderer::bindTex(2, GL_TEXTURE_2D, m_kovalovsLUT);
+		else
+			Renderer::bindTex(2, GL_TEXTURE_2D, m_hooblerAccumLUT);
 
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 	}
@@ -586,6 +592,7 @@ void App::setupShaders()
 	m_fogScatterAbsorbShader.use();
 	m_fogScatterAbsorbShader.setInt("u_pointShadowmapArray", 0);
 	m_fogScatterAbsorbShader.setInt("u_previousFrameFog", 1);
+	m_fogScatterAbsorbShader.setInt("u_LUT", 2);
 	m_fogScatterAbsorbShader.setVec3("u_fogTexSize", c_fogTexSize);
 }
 
@@ -608,6 +615,52 @@ void App::setupFBOs()
 	m_pointShadowmapArrayFBO =		createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6), m_pointShadowmapArrayColour, m_pointShadowmapArrayDepth);
 	m_horiBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6), m_horiBlurShadowmapArrayColour);
 	m_vertBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6), m_vertBlurShadowmapArrayColour);
+}
+
+void App::generateLUTs()
+{
+	// Generate Hoobler's scattering LUT:
+	m_hooblerAccumLUTShader.use();
+	m_hooblerAccumLUTShader.setFloat("u_scatteringCoefficient", m_fogScattering);
+	m_hooblerAccumLUTShader.setFloat("u_absorptionCoefficient", m_fogAbsorption);
+
+	const float distance = 10.0f;
+	const float vecLength = 25.0f;
+	const float lightZFar = 50.0f;
+
+	m_hooblerAccumLUTShader.setFloat("u_distance", distance);
+	m_hooblerAccumLUTShader.setFloat("u_gParam", m_fogPhaseGParam);
+
+	m_hooblerAccumLUTShader.setFloat("u_vecLength", vecLength);
+	m_hooblerAccumLUTShader.setFloat("u_lightZFar", lightZFar);
+
+	m_hooblerAccumLUTShader.setFloat("u_constant", m_light.getConstant());
+	m_hooblerAccumLUTShader.setFloat("u_linear", m_light.getLinear());
+	m_hooblerAccumLUTShader.setFloat("u_quadratic", m_light.getQuadratic());
+
+	glBindImageTexture(3, m_hooblerScatterAccumTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glBindImageTexture(4, m_hooblerAccumLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glDispatchCompute(32, 128, 1);
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	m_hooblerSumLUTShader.use();
+	glBindImageTexture(5, m_hooblerSumLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	glDispatchCompute(32, 256, 1);
+
+	// Generate Kovalovs' scattering LUT:
+	m_kovalovsLUTShader.use();
+
+	m_kovalovsLUTShader.setFloat("u_gParam", m_fogPhaseGParam);
+
+	m_kovalovsLUTShader.setFloat("u_constant", m_light.getConstant());
+	m_kovalovsLUTShader.setFloat("u_linear", m_light.getLinear());
+	m_kovalovsLUTShader.setFloat("u_quadratic", m_light.getQuadratic());
+
+	glBindImageTexture(6, m_kovalovsLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+	glDispatchCompute(1, 1024, 1);
+
+	std::cout << "Generated LUTs!" << std::endl;
 }
 
 void App::setupModelsAndTextures()
@@ -726,9 +779,15 @@ void App::setupModelsAndTextures()
 
 	// Load/create textures:
 	m_rockTex = loadTexture("models/rock/rock.png");
-	m_oddFogScatterAbsorbTex = createTexture(c_fogTexSize);
-	m_evenFogScatterAbsorbTex = createTexture(c_fogTexSize);
-	m_fogAccumTex = createTexture(c_fogTexSize);
+	m_oddFogScatterAbsorbTex = createTexture(c_fogTexSize, GL_RGBA32F);
+	m_evenFogScatterAbsorbTex = createTexture(c_fogTexSize, GL_RGBA32F);
+	m_fogAccumTex = createTexture(c_fogTexSize, GL_RGBA32F);
+
+	// Create LUTs:
+	m_kovalovsLUT = createTexture(c_LUTDim, GL_R32F);
+	m_hooblerAccumLUT = createTexture(c_LUTDim, GL_RGBA32F);
+	m_hooblerScatterAccumTex = createTexture(c_LUTDim, GL_RGBA32F);
+	m_hooblerSumLUT = createTexture(c_LUTDim, GL_RGBA32F);
 }
 
 GLFWwindow* App::initWindow()
@@ -815,7 +874,7 @@ GLuint App::loadTexture(const char* filepath, bool flipY)
 	return newTex;
 }
 
-GLuint App::createTexture(GLuint width, GLuint height)
+GLuint App::createTexture(GLuint width, GLuint height, GLenum format)
 {
 	GLuint newTex;
 	glGenTextures(1, &newTex);
@@ -824,12 +883,15 @@ GLuint App::createTexture(GLuint width, GLuint height)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	GLenum internalFormat = getTextureInternalFormat(format);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, internalFormat, GL_FLOAT, NULL);
 
 	return newTex;
 }
 
-GLuint App::createTexture(glm::uvec2 dim)
+GLuint App::createTexture(glm::uvec2 dim, GLenum format)
 {
 	GLuint newTex;
 	glGenTextures(1, &newTex);
@@ -838,12 +900,15 @@ GLuint App::createTexture(glm::uvec2 dim)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, dim.x, dim.y, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	GLenum internalFormat = getTextureInternalFormat(format);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, format, dim.x, dim.y, 0, internalFormat, GL_FLOAT, NULL);
 
 	return newTex;
 }
 
-GLuint App::createTexture(GLuint width, GLuint height, GLuint depth)
+GLuint App::createTexture(GLuint width, GLuint height, GLuint depth, GLenum format)
 {
 	GLuint newTex;
 	glGenTextures(1, &newTex);
@@ -853,12 +918,15 @@ GLuint App::createTexture(GLuint width, GLuint height, GLuint depth)
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, width, height, depth, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	GLenum internalFormat = getTextureInternalFormat(format);
+
+	glTexImage3D(GL_TEXTURE_3D, 0, format, width, height, depth, 0, internalFormat, GL_FLOAT, NULL);
 
 	return newTex;
 }
 
-GLuint App::createTexture(glm::uvec3 dim)
+GLuint App::createTexture(glm::uvec3 dim, GLenum format)
 {
 	GLuint newTex;
 	glGenTextures(1, &newTex);
@@ -868,9 +936,43 @@ GLuint App::createTexture(glm::uvec3 dim)
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, dim.x, dim.y, dim.z, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	GLenum internalFormat = getTextureInternalFormat(format);
+
+	glTexImage3D(GL_TEXTURE_3D, 0, format, dim.x, dim.y, dim.z, 0, internalFormat, GL_FLOAT, NULL);
 
 	return newTex;
+}
+
+GLenum App::getTextureInternalFormat(GLenum format)
+{
+	GLenum internalFormat;
+
+	switch (format)
+	{
+	case GL_RED:
+	case GL_R16F:
+	case GL_R32F:
+		internalFormat = GL_RED;
+		break;
+	case GL_RG:
+	case GL_RG16F:
+	case GL_RG32F:
+		internalFormat = GL_RG;
+		break;
+	case GL_RGB:
+	case GL_RGB16F:
+	case GL_RGB32F:
+		internalFormat = GL_RGB;
+		break;
+	case GL_RGBA:
+	case GL_RGBA16F:
+	case GL_RGBA32F:
+	default:
+		internalFormat = GL_RGBA;
+		break;
+	}
+	return internalFormat;
 }
 
 GLuint App::createFBO(glm::uvec2 dim, GLuint& colourTexBuffer)
