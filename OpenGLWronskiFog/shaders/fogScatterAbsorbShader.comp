@@ -35,6 +35,13 @@ struct Ray
 	vec3 direction;
 };
 
+struct RaySphereResults
+{
+	bool results;
+	float t0;
+	float t1;
+};
+
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
 uniform vec3	u_cameraForward;
@@ -336,7 +343,7 @@ bool raySphereIntersection(Ray froxelRay, uint lightIndex, float lightRadius, ou
 
 	float dSqr = abs(tc * tc - lSqr);
 
-	if (dSqr > lightRadius * lightRadius);
+	if (dSqr > lightRadius * lightRadius)
 		return false;
 
 	float t1c = sqrt(lightRadius * lightRadius - dSqr);
@@ -376,14 +383,22 @@ vec4 getKovalovsUVCoords(Ray froxelRay, uint lightIndex, float lightRadius, vec3
 		return vec4(uv0.xy, uv1.xy);
 	}
 	
+	// If angle between both intersection-to-light vectors is 0, then view ray is at a tangent to the
+	// light sphere and there is no normal to define a plane, but the UV coords are both (0.0, 0.5):
+	if (floatEqual(dot(abNorm, acNorm), 1.0))
+		return vec4(0.0, 0.5, 0.0, 0.5);
+
 	vec3 n = normalize(cross(ab, ac));
 	vec3 nXv = normalize(cross(froxelRay.direction, n));
 
-	uv0.x = dot(nXv, ab);
-	uv0.y = dot(froxelRay.direction, ab);
+	uv0.x = dot(nXv, ab) / lightRadius;
+	uv0.y = dot(froxelRay.direction, ab) / lightRadius;
 	
-	uv1.x = dot(nXv, ac);
-	uv1.y = dot(froxelRay.direction, ac);
+	uv1.x = dot(nXv, ac) / lightRadius;
+	uv1.y = dot(froxelRay.direction, ac) / lightRadius;
+
+	uv0 = uv0 * 0.5 + 0.5;
+	uv1 = uv1 * 0.5 + 0.5;
 
 	return vec4(uv0.xy, uv1.xy);
 }
@@ -503,15 +518,15 @@ void main()
 				froxelRay.origin = jitteredWorldPos;
 				froxelRay.direction = normalize(jitteredWorldPos - u_cameraPos);
 
-				light = sampleKovalovsLUT(froxelRay, thickness, i).rrr * calcShadow(jitteredWorldPos);
+				light = sampleKovalovsLUT(froxelRay, thickness, i).rrr;
 			}
 			// Sample from Hoobler's LUT (false):
 			else
 			{
-				light = sampleHooblerLUT(jitteredWorldPos, i) * calcShadow(jitteredWorldPos);
+				light = sampleHooblerLUT(jitteredWorldPos, i);
 			}
 
-			light *= u_pointLights[i].diffuse * u_lightIntensity;
+			light *= u_pointLights[i].diffuse * u_lightIntensity  * calcShadow(jitteredWorldPos);
 		}
 
 		lighting += light;
