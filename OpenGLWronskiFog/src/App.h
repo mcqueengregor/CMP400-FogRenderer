@@ -122,6 +122,7 @@ private:
 	float m_pointLightConstant		= 1.0f;
 	float m_pointLightLinear		= 0.09f;
 	float m_pointLightQuadratic		= 0.032f;
+	float m_pointLightRadius		= 20.0f;
 	float m_lightIntensity			= 100.0f;
 
 	// VAOs, VBOs and EBOs:
@@ -169,13 +170,13 @@ private:
 	std::string m_uniformUpdateText		= std::string("Shader uniforms update");
 
 	// Models and textures:
-	Model	m_planet;
-	Model	m_rock;
-	GLuint	m_rockTex;
-	GLuint	m_evenFogScatterAbsorbTex;
-	GLuint	m_oddFogScatterAbsorbTex;
+	Model  m_planet;
+	Model  m_rock;
+	GLuint m_rockTex;
+	GLuint m_evenFogScatterAbsorbTex;
+	GLuint m_oddFogScatterAbsorbTex;
 	
-	GLuint	m_fogAccumTex;
+	GLuint m_fogAccumTex;
 
 	GLuint m_kovalovsLUT;				// LUT created with Kovalovs' method.
 	GLuint m_hooblerAccumLUT;			// LUT created with Hoobler's method (accumulation stage).
@@ -203,13 +204,22 @@ private:
 
 	glm::uvec2 m_windowDim;
 
-	bool	m_wireframe = false;
-	bool	m_hasRightClicked = false;
-	bool	m_outputDepth = false;
-	bool	m_applyFog = false;
-	bool	m_evenFrame = true;	// Boolean used to alternate between which 3D fog texture to write to. Other texture is used for temporal blending.
-	bool	m_hooblerOrKovalovs = false;	// 'false' = Hoobler, 'true' = Kovalovs.
-
 	double	m_originalCursorPosX;
 	double	m_originalCursorPosY;
+
+	// Application controls:
+	bool	m_wireframe			= false;
+	bool	m_hasRightClicked	= false;
+	bool	m_outputDepth		= false;
+	bool	m_applyFog			= false;
+	bool	m_evenFrame			= true;		// Boolean used to alternate between which 3D fog texture to write to. Other texture is used for temporal blending.
+	bool	m_useLUT			= false;
+	bool	m_hooblerOrKovalovs = false;	// 'false' = Hoobler, 'true' = Kovalovs.
+
+	enum ShadowMapTechnique
+	{
+		STANDARD	= 0,
+		VSM			= 1,
+		ESM			= 2
+	} m_shadowMapTechnique;
 };

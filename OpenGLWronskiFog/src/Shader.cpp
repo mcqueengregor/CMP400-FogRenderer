@@ -122,6 +122,8 @@ void Shader::setPointLight(const std::string& name, PointLight light) const
 	glUniform1f(glGetUniformLocation(m_ID, (name + ".constant").c_str()), light.getConstant());
 	glUniform1f(glGetUniformLocation(m_ID, (name + ".linear").c_str()), light.getLinear());
 	glUniform1f(glGetUniformLocation(m_ID, (name + ".quadratic").c_str()), light.getQuadratic());
+
+	glUniform1f(glGetUniformLocation(m_ID, (name + ".radius").c_str()), light.getRadius());
 }
 
 GLuint Shader::setupStage(const char* path, GLuint type)

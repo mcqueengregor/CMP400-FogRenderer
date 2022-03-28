@@ -23,6 +23,7 @@ public:
 	float		getConstant()	{ return m_constant; }
 	float		getLinear()		{ return m_linear; }
 	float		getQuadratic()	{ return m_quadratic; }
+	float		getRadius()		{ return m_radius; }
 
 	float*		getPositionPtr() { return &m_position.x; }
 
@@ -32,9 +33,13 @@ public:
 	void		setLinear(float newLinear)				{ m_linear = newLinear; }
 	void		setQuadratic(float newQuadratic)		{ m_quadratic = newQuadratic; }
 
+	void		setRadius(float newRadius)				{ m_radius = newRadius; }
+
 protected:
 	glm::vec3	m_position;
 	float		m_constant;
 	float		m_linear;
 	float		m_quadratic;
+
+	float		m_radius;
 };

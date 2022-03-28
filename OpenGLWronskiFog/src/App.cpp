@@ -159,6 +159,8 @@ void App::update(float dt)
 
 	m_light.setPosition(m_pointLightPosition);
 	m_light.setDiffuse(m_pointLightDiffuse);
+	m_light.setRadius(m_pointLightRadius);
+
 	m_lightCubeWorld = glm::translate(glm::mat4(1.0f), m_pointLightPosition);
 	m_lightCubeWorld = glm::scale(m_lightCubeWorld, glm::vec3(0.25f));
 
@@ -188,9 +190,14 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setFloat("u_phaseGParam", m_fogPhaseGParam);
 		m_fogScatterAbsorbShader.setFloat("u_fogDensity", m_fogDensity);
 		m_fogScatterAbsorbShader.setFloat("u_lightIntensity", m_lightIntensity);
+		
 		m_fogScatterAbsorbShader.setBool("u_useHetFog", m_useHeterogeneousFog);
-		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
 		m_fogScatterAbsorbShader.setBool("u_useJitter", m_useJitter);
+		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
+		m_fogScatterAbsorbShader.setBool("u_useLUT", m_useLUT);
+		m_fogScatterAbsorbShader.setBool("u_KorH", m_hooblerOrKovalovs);
+
+		m_fogScatterAbsorbShader.setInt("u_shadowMapTechnique", m_shadowMapTechnique);
 
 		// Set noise data:
 		m_fogScatterAbsorbShader.setFloat("u_noiseFreq", m_noiseFreq);
@@ -302,7 +309,13 @@ void App::render()
 	// Dispatch fog scattering and absorption evaluation compute shader ------------------------------------------
 	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
 	{
-		Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_vertBlurShadowmapArrayColour);
+		// Bind unblurred shadowmaps if using standard shadowmapping:
+		if (m_shadowMapTechnique == STANDARD)
+			Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_pointShadowmapArrayColour);
+		// Otherwise, bind blurred shadowmaps:
+		else
+			Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_vertBlurShadowmapArrayColour);
+
 		if (m_evenFrame)
 		{
 			FogRenderer::bindImage(1, m_evenFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
@@ -447,36 +460,74 @@ void App::gui()
 		ImGui::NewFrame();
 
 		ImGui::Begin("ImGui");
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::Text("Camera position: (%f, %f, %f)", m_camera.getPosition().x, m_camera.getPosition().y, m_camera.getPosition().z);
-		ImGui::Checkbox("Output depth", &m_outputDepth);
-		ImGui::Checkbox("Apply fog", &m_applyFog);
-
-		ImGui::DragFloat3("Planet position", &m_planetPosition.x, 0.1f);
-
-		if (ImGui::CollapsingHeader("Fog parameters"))
 		{
-			ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
-			ImGui::SliderFloat3("Wind direction", &m_windDirection.x, -1.0, 1.0f);
-			ImGui::SliderFloat3("Fog albedo", &m_fogAlbedo.x, 0.0f, 1.0f);
-			ImGui::SliderFloat("Fog scattering", &m_fogScattering, 0.0f, 1.0f);
-			ImGui::SliderFloat("Fog absorption", &m_fogAbsorption, 0.0f, 1.0f);
-			ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
-			ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
-			ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
-			ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
-			ImGui::Checkbox("Use sample jittering?", &m_useJitter);
-		}
-		if (ImGui::CollapsingHeader("Light parameters"))
-		{
-			ImGui::SliderFloat3("Light position", &m_pointLightPosition.x, -50.0f, 50.0f);
-			ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse.r, 0.0f, 1.0f);
-			ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.2f, 0.0f);
-			ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
-			ImGui::SliderFloat("Light linear", &m_pointLightLinear, 0.0f, 1.0f);
-			ImGui::SliderFloat("Light quadratic", &m_pointLightQuadratic, 0.0f, 1.0f);
-		}
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::Text("Camera position: (%f, %f, %f)", m_camera.getPosition().x, m_camera.getPosition().y, m_camera.getPosition().z);
+			ImGui::Checkbox("Output depth", &m_outputDepth);
+			ImGui::Checkbox("Apply fog", &m_applyFog);
 
+			ImGui::DragFloat3("Planet position", &m_planetPosition.x, 0.1f);
+
+			if (ImGui::CollapsingHeader("Fog parameters"))
+			{
+				if (ImGui::Button("Regenerate LUTs"))
+					generateLUTs();
+
+				ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
+				ImGui::SliderFloat3("Wind direction", &m_windDirection.x, -1.0, 1.0f);
+				ImGui::SliderFloat3("Fog albedo", &m_fogAlbedo.x, 0.0f, 1.0f);
+				ImGui::SliderFloat("Fog scattering", &m_fogScattering, 0.0f, 1.0f);
+				ImGui::SliderFloat("Fog absorption", &m_fogAbsorption, 0.0f, 1.0f);
+				ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
+
+				ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
+				ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
+				ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
+				ImGui::Checkbox("Use sample jittering?", &m_useJitter);
+				ImGui::Checkbox("Use LUT?", &m_useLUT);
+				if (m_useLUT)
+				{
+					ImGui::Checkbox("Hoobler or Kovalovs?", &m_hooblerOrKovalovs);
+					if (m_hooblerOrKovalovs)
+						ImGui::Text("Current LUT: Kovalovs");
+					else
+						ImGui::Text("Current LUT: Hoobler");
+				}
+
+				ImGui::SliderInt("Shadow Map Technique", (int*)&m_shadowMapTechnique, 0, 2);
+				switch (m_shadowMapTechnique)
+				{
+				case STANDARD:
+					ImGui::Text("Current technique: Standard shadow mapping");
+					break;
+				case VSM:
+					ImGui::Text("Current technique: Variance shadow mapping");
+					break;
+				case ESM:
+					ImGui::Text("Current technique: Exponential shadow mapping");
+					break;
+				}
+			}
+			if (ImGui::CollapsingHeader("Light parameters"))
+			{
+				ImGui::SliderFloat3("Light position", &m_pointLightPosition.x, -50.0f, 50.0f);
+				ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse.r, 0.0f, 1.0f);
+				ImGui::SliderFloat("Light radius", &m_pointLightRadius, 1.0f, 100.0f);
+				ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.2f, 0.0f);
+				ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
+				ImGui::SliderFloat("Light linear", &m_pointLightLinear, 0.0f, 1.0f);
+				ImGui::SliderFloat("Light quadratic", &m_pointLightQuadratic, 0.0f, 1.0f);
+			}
+		}
+		ImGui::End();
+
+		ImGui::Begin("Current LUT");
+		{
+			if (m_hooblerOrKovalovs)
+				ImGui::Image((void*)m_kovalovsLUT, ImVec2(256, 256));
+			else
+				ImGui::Image((void*)m_hooblerSumLUT, ImVec2(256, 256));
+		}
 		ImGui::End();
 
 		ImGui::Render();
@@ -625,7 +676,7 @@ void App::generateLUTs()
 	m_hooblerAccumLUTShader.setFloat("u_absorptionCoefficient", m_fogAbsorption);
 
 	const float distance = 10.0f;
-	const float vecLength = 25.0f;
+	const float vecLength = 15.0f;
 	const float lightZFar = 50.0f;
 
 	m_hooblerAccumLUTShader.setFloat("u_distance", distance);

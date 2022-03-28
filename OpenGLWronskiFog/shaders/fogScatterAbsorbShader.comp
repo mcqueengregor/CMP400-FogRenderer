@@ -50,7 +50,6 @@ uniform vec2	u_fogHeightRange;
 uniform float	u_phaseGParam;
 uniform float	u_fogDensity;
 uniform float	u_lightIntensity;
-uniform bool	u_useHetFog;
 uniform int		u_frameIndex;
 
 // Noise data uniforms:
@@ -68,11 +67,20 @@ uniform sampler2DArray	u_pointShadowmapArray;
 uniform sampler3D		u_previousFrameFog;
 uniform sampler2D		u_LUT;
 
-// Control booleans:
+// Controls:
+uniform bool	u_useHetFog;
 uniform bool	u_useJitter;
 uniform bool	u_useTemporal;
 uniform bool	u_useLUT;
-uniform bool	u_KorH;	// 'true' = use Kovalovs LUT, 'false' = use Hoobler LUT.
+uniform bool	u_KorH;		// 'false' = use Hoobler LUT, 'true' = use Kovalovs LUT.
+uniform bool	u_linOrExp;	// 'false' = use exponential distribution, 'true' = use linear distribution.
+
+uniform int u_shadowMapTechnique;
+
+// Values match "ShadowMapTechnique" enum in App.h:
+#define STANDARD 0
+#define VSM 1
+#define ESM 2
 
 /* UTILITY FUNCTIONS: ---------------------------------------------------------------------------------- */
 
@@ -230,19 +238,22 @@ float calcShadow(vec3 worldPos)
 			float currentDepth = length(lightDir);
 
 			const float bias = 0.05;
-			// Ignore variance/exponential shadow test stuff until standard shadows are actually working
-			return currentDepth > moments.x + bias ? 0.0 : 1.0;
 
-			float p = step(currentDepth, moments.x + bias);
+			if (u_shadowMapTechnique == STANDARD)
+				return currentDepth > moments.x + bias ? 0.0 : 1.0;
 
-			float variance = max(moments.y - moments.x * moments.x, 0.00002);
-			float d = currentDepth - moments.x;
+			else if (u_shadowMapTechnique == VSM)
+			{
+				float p = step(currentDepth, moments.x + bias);
 
-			float pMax = variance / (variance + d * d);
+				float variance = max(moments.y - moments.x * moments.x, 0.00002);
+				float d = currentDepth - moments.x;
 
-			return clamp(exp(-1.0 * (currentDepth - moments.x)), 0.0, 1.0);
-
-			return max(p, pMax);
+				float pMax = variance / (variance + d * d);
+				return max(p, pMax);
+			}
+			else if (u_shadowMapTechnique == ESM)
+				return clamp(exp(-1.0 * (currentDepth - moments.x)), 0.0, 1.0);
 		}
 	}
 
@@ -377,8 +388,9 @@ vec4 getKovalovsUVCoords(Ray froxelRay, uint lightIndex, float lightRadius, vec3
 	return vec4(uv0.xy, uv1.xy);
 }
 
-float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex, float lightRadius)
+float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex)
 {
+	const float lightRadius = u_pointLights[lightIndex].radius;
 	float t0, t1;
 	vec4 uvPair;
 
@@ -429,8 +441,9 @@ float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex, f
 }
 
 /* HOOBLER LUT SAMPLING: ------------------------------------------------------------------------------- */
-vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex, float lightRadius)
+vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex)
 {
+	const float lightRadius = u_pointLights[lightIndex].radius;
 	vec3 lightToCamera = u_cameraPos - u_pointLights[lightIndex].position;
 	float lightDist = length(lightToCamera);
 	vec3 cameraToFroxel = normalize(worldPos - u_cameraPos);
@@ -438,7 +451,7 @@ vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex, float lightRadius)
 	float t0 = max(lightDist - lightRadius, 0.0);
 	float tRange = lightRadius + lightDist - t0;
 
-	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(lightToCamera / lightDist, cameraToFroxel)) / PI);
+	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(normalize(lightToCamera), cameraToFroxel)) / PI);
 	vec4 scattering = texture(u_LUT, uv);
 
 	return scattering.rgb * scattering.a;
@@ -483,22 +496,22 @@ void main()
 			light = calcPointLight(i, jitteredWorldPos) * phaseHG(i, jitteredWorldPos, u_phaseGParam) * calcShadow(jitteredWorldPos);
 		else
 		{
-			const float radius = 5.0;	// **TEMPORARY VALUE, WRITE RADIUS TO POINT LIGHT UNIFORMS**
-
-			// Sample from Kovalovs' LUT:
+			// Sample from Kovalovs' LUT (true):
 			if (u_KorH)
 			{
 				Ray froxelRay;
 				froxelRay.origin = jitteredWorldPos;
 				froxelRay.direction = normalize(jitteredWorldPos - u_cameraPos);
 
-				light = u_pointLights[i].diffuse * sampleKovalovsLUT(froxelRay, thickness, i, 5.0) * calcShadow(jitteredWorldPos);
+				light = sampleKovalovsLUT(froxelRay, thickness, i).rrr * calcShadow(jitteredWorldPos);
 			}
-			// Sample from Hoobler's LUT:
+			// Sample from Hoobler's LUT (false):
 			else
 			{
-				light = u_pointLights[i].diffuse * sampleHooblerLUT(jitteredWorldPos, i, radius) * calcShadow(jitteredWorldPos);
+				light = sampleHooblerLUT(jitteredWorldPos, i) * calcShadow(jitteredWorldPos);
 			}
+
+			light *= u_pointLights[i].diffuse * u_lightIntensity;
 		}
 
 		lighting += light;
