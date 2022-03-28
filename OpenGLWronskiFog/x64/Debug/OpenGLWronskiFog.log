@@ -19,6 +19,18 @@
 \\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(596,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
 \\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(860,19): warning C4150: deletion of pointer to incomplete type 'GLFWwindow'; no destructor called
 \\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\GLFW\glfw3.h(1157): message : see declaration of 'GLFWwindow'
+  main.cpp
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Model.h(189,1): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(21,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(30,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(35,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(71,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(80,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(85,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(109,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(122,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(174,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+  Generating Code...
 glfw3.lib(context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(context.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
 glfw3.lib(init.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(init.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
 glfw3.lib(input.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(input.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
@@ -32,6 +44,6 @@ glfw3.lib(win32_time.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with '
 glfw3.lib(win32_thread.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_thread.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
 glfw3.lib(win32_window.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(win32_window.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
 glfw3.lib(wgl_context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(wgl_context.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
-glfw3.lib(egl_context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(egl_context.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
+glfw3.lib(egl_context.obj) : warning LNK4099: PDB '' was not found with 'glfw3.lib(egl_context.obj)' or at ''; linking object as if no debug info
 glfw3.lib(osmesa_context.obj) : warning LNK4099: PDB 'glfw.pdb' was not found with 'glfw3.lib(osmesa_context.obj)' or at '\\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\glfw.pdb'; linking object as if no debug info
   OpenGLWronskiFog.vcxproj -> \\StuHomeOdd\HomeDrive5$\1801875\GitHub\CMP400-FogRenderer\x64\Debug\OpenGLWronskiFog.exe

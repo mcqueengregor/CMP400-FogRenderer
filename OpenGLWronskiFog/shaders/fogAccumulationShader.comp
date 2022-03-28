@@ -5,6 +5,13 @@ layout (rgba32f, binding = 3) uniform image3D imgOutput;
 
 // Based on Wronski's chapter on volumetric fog in GPU Pro 360, chapt. 18:
 
+float getFroxelDepth(uint z)
+{
+	const float near = 0.1, far = 150.0;
+	float farOverNear = far / near;
+	return near * pow(farOverNear, float(z) / (64.0 - 1));
+}
+
 vec4 accumulateScattering(vec4 currentSlice, vec4 nextSlice)
 {
 	// Apply transmittance to in-scattered light accumulated so far:
@@ -32,6 +39,11 @@ void main()
 	for (uint z = 1; z < texDepth; ++z)
 	{
 		const ivec3 coords = ivec3(gl_GlobalInvocationID.xy, z);
+		
+		vec4 fogScatterAbsorb = imageLoad(imgInput, coords);
+		float froxelDepth = getFroxelDepth(z);
+		vec3 transmittedLight = (fogScatterAbsorb.rgb - (fogScatterAbsorb.rgb * exp(-fogScatterAbsorb.a * froxelDepth)));
+		transmittedLight /= fogScatterAbsorb.a;
 
 		// Read scattering and extinction values from input 3D texture:
 		vec4 nextSliceVal = imageLoad(imgInput, coords);

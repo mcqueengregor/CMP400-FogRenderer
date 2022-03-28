@@ -96,7 +96,7 @@ private:
 	float				m_fogScattering			= 1.0f;
 	float				m_fogAbsorption			= 0.0f;
 	glm::vec3			m_fogAlbedo				= glm::vec3(1.0f);
-	float				m_fogPhaseGParam		= 0.0f;
+	float				m_fogPhaseGParam		= -0.5f;
 	float				m_fogDensity			= 0.03f;
 	bool				m_useHeterogeneousFog	= false;
 	bool				m_useShadows			= true;
