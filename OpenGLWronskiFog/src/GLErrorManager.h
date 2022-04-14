@@ -1,6 +1,12 @@
 #pragma once
 #include <iostream>
+
 #include <glad4.3/glad4.3.h>
+
+//#undef APIENTRY
+//#include <NsightPerfSDK/nvperf_host_impl.h>
+//#include <NsightPerfSDK/NvPerfUtility/NvPerfReportGeneratorOpenGL.h>
+
 
 /*
 	OpenGL error codes:

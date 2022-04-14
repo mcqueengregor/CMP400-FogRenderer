@@ -288,16 +288,33 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
 	float farOverNear = far / near;
 	
-	// Get UV coords from compute thread ID (distribute depth exponentially):
-	float viewZ = near * pow(farOverNear, (globalThreadID.z + jitter) / (u_fogTexSize.z - 1));
-	vec3 uv = vec3(globalThreadID.xy / u_fogTexSize.xy, viewZ / far);
+	float viewZExp;
+	vec3 uv;
+
+	viewZExp = near * pow(farOverNear, (globalThreadID.z + jitter) / (u_fogTexSize.z - 1));
+	uv = vec3(globalThreadID.xy / u_fogTexSize.xy, viewZExp / far);
 
 	// Get NDC from UV coords (convert to exponential z-depth distribution from linear compute ID):
 	float ndcZ = (1.0 / uv.z - farOverNear) / (1.0 - farOverNear);
-	vec3 ndc = vec3(uv.xy, ndcZ) * 2.0 - 1.0;
+	vec3 ndc;
+
+	ndc = 2.0 * vec3(uv.xy, ndcZ) - 1.0;
 
 	vec4 world = invViewProj * vec4(ndc, 1.0);
 	world.xyz /= world.w;
+
+	// If a linear froxel depth distribution is used, adjust depth from exponential to linear:
+	if (u_linOrExp)
+	{
+		// Calculate camera's up right and up vectors:
+		vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), u_cameraForward));
+		vec3 up = normalize(cross(right, u_cameraForward));
+
+		vec3 view = vec3(dot(world.xyz, right), dot(world.xyz, up), dot(world.xyz, u_cameraForward));
+		view.z = near * globalThreadID.z * getFroxelThicknessLin();
+
+		vec3 world = transpose(mat3(u_matrices.view)) * -view;
+	}
 
 	return world.xyz;
 }
@@ -311,9 +328,17 @@ vec3 getUVCoords(vec3 worldPos, mat4 viewProj)
 	ndc.xyz /= ndc.w;
 
 	vec3 uv = ndc.xyz * 0.5 + 0.5;
-	float uvZ = 1.0 / ((1.0 - farOverNear) * uv.z + farOverNear);
-	vec2 params = vec2(u_fogTexSize.z / log2(farOverNear), -(u_fogTexSize.z * log2(near) / log2(farOverNear)));
-	uv.z = max(log2(uvZ * far) * params.x + params.y, 0.0) / u_fogTexSize.z;
+
+	if (u_linOrExp)
+	{
+		uv.z = invLerp(near, far, dot(u_cameraForward, worldPos - u_cameraPos));
+	}
+	else
+	{
+		float uvZ = 1.0 / ((1.0 - farOverNear) * uv.z + farOverNear);
+		vec2 params = vec2(u_fogTexSize.z / log2(farOverNear), -(u_fogTexSize.z * log2(near) / log2(farOverNear)));
+		uv.z = max(log2(uvZ * far) * params.x + params.y, 0.0) / u_fogTexSize.z;
+	}
 
 	return uv;
 }
@@ -397,8 +422,8 @@ vec4 getKovalovsUVCoords(Ray froxelRay, uint lightIndex, float lightRadius, vec3
 	uv1.x = dot(nXv, ac) / lightRadius;
 	uv1.y = dot(froxelRay.direction, ac) / lightRadius;
 
-	uv0 = uv0 * 0.5 + 0.5;
-	uv1 = uv1 * 0.5 + 0.5;
+	uv0 = 0.5 * uv0 + 0.5;
+	uv1 = 0.5 * uv1 + 0.5;
 
 	return vec4(uv0.xy, uv1.xy);
 }
@@ -407,7 +432,7 @@ float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex)
 {
 	const float lightRadius = u_pointLights[lightIndex].radius;
 	float t0, t1;
-	vec4 uvPair;
+	vec4 uvPair = vec4(0.0);
 
 	if (raySphereIntersection(froxelRay, lightIndex, lightRadius, t0, t1))
 	{
@@ -483,7 +508,12 @@ void main()
 		jitter = 0.0;
 
 	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
-	float thickness = getFroxelThicknessExp(gl_GlobalInvocationID.z);
+	float thickness;
+	
+	if (u_linOrExp)
+		thickness = getFroxelThicknessLin();
+	else
+		thickness = getFroxelThicknessExp(gl_GlobalInvocationID.z);
 
 	float scattering = u_scatteringCoefficient * u_fogDensity;
 	float absorption = u_absorptionCoefficient * u_fogDensity;
@@ -532,7 +562,7 @@ void main()
 		lighting += light;
 	}
 
-	// Multiply accumulated lighting by fog albedo colour:
+	// Tint accumulated lighting with fog albedo colour:
 	lighting *= u_albedo;
 
 	vec4 results = vec4(lighting * scattering, scattering + absorption);

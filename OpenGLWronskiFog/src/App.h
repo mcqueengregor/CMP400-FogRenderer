@@ -49,6 +49,7 @@ private:
 	void generateLUTs();
 
 	GLFWwindow* initWindow();
+	bool		initPerfkit();
 	GLuint		loadTexture(const char* filepath, bool flipY = false);
 	GLuint		createTexture(GLuint width, GLuint height, GLenum format);
 	GLuint		createTexture(glm::uvec2 dim, GLenum format);
@@ -194,6 +195,12 @@ private:
 	glm::mat4 m_lightCubeWorld;
 	glm::mat4 m_lightSpaceMat[6];
 
+	// Nvidia Perfkit data:
+	uint64_t m_perfkitContext;
+
+	// Nsight Perf SDK data:
+	//nv::perf::profiler::ReportGeneratorOpenGL m_nvPerf;
+
 	// Misc application data:
 	float	m_dt{};
 	float	m_lastFrame{};
@@ -208,13 +215,15 @@ private:
 	double	m_originalCursorPosY;
 
 	// Application controls:
-	bool	m_wireframe			= false;
-	bool	m_hasRightClicked	= false;
-	bool	m_outputDepth		= false;
-	bool	m_applyFog			= false;
-	bool	m_evenFrame			= true;		// Boolean used to alternate between which 3D fog texture to write to. Other texture is used for temporal blending.
-	bool	m_useLUT			= false;
-	bool	m_hooblerOrKovalovs = false;	// 'false' = Hoobler, 'true' = Kovalovs.
+	bool	m_wireframe			 = false;
+	bool	m_hasRightClicked	 = false;
+	bool	m_outputDepth		 = false;
+	bool	m_applyFog			 = false;
+	bool	m_evenFrame			 = true;	// Boolean used to alternate between which 3D fog texture to write to. Other texture is used for temporal blending.
+	bool	m_useLUT			 = false;
+	bool	m_hooblerOrKovalovs  = false;	// 'false' = Hoobler, 'true' = Kovalovs.
+	bool	m_linearOrExpFroxels = false;	// 'false' = use exponential depth distribution, 'true' = use linear distribution.
+	bool	m_currentlyTesting	 = false;
 
 	enum ShadowMapTechnique
 	{
@@ -222,4 +231,10 @@ private:
 		VSM			= 1,
 		ESM			= 2
 	} m_shadowMapTechnique;
+
+	enum TestingSetup
+	{
+		PERFKIT  = 0,
+		PERF_SDK = 1
+	} m_testingSetup;
 };

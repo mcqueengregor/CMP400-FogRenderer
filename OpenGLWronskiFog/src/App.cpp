@@ -1,19 +1,30 @@
 #include "App.h"
 
+// Define Nvidia Perfkit data:
+#define NVPM_INITGUID
+#include "NVidiaPerfkit/NvPmApi.Manager.h"
+
+static NvPmApiManager s_NVPMManager;
+NvPmApiManager* getNvPmApiManager() { return &s_NVPMManager; }
+const NvPmApi* getNvPmApi() { return s_NVPMManager.Api(); }
+
 App::~App()
 {
 	// Shutdown ImGui:
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+	if (m_window)
+	{
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
 
-	// Delete buffers and VAOs:
-	glDeleteVertexArrays(1, &m_fullscreenQuadVAO);
-	glDeleteBuffers(1, &m_fullscreenQuadVBO);
-	glDeleteBuffers(1, &m_asteroidMatricesVBO);
+		// Delete buffers and VAOs:
+		glDeleteVertexArrays(1, &m_fullscreenQuadVAO);
+		glDeleteBuffers(1, &m_fullscreenQuadVBO);
+		glDeleteBuffers(1, &m_asteroidMatricesVBO);
 
-	// Shutdown GLFW:
-	glfwTerminate();
-	std::cout << "GLFW terminated!" << std::endl;
+		// Shutdown GLFW:
+		glfwTerminate();
+		std::cout << "GLFW terminated!" << std::endl;
+	}
 }
 
 bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
@@ -48,8 +59,6 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 	ImGui::StyleColorsDark();
 	ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
-
-	Renderer::s_debugGroupCount;
 
 	return true;
 }
@@ -196,8 +205,8 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
 		m_fogScatterAbsorbShader.setBool("u_useLUT", m_useLUT);
 		m_fogScatterAbsorbShader.setBool("u_KorH", m_hooblerOrKovalovs);
-
 		m_fogScatterAbsorbShader.setInt("u_shadowMapTechnique", m_shadowMapTechnique);
+		m_fogScatterAbsorbShader.setBool("u_linOrExp", m_linearOrExpFroxels);
 
 		// Set noise data:
 		m_fogScatterAbsorbShader.setFloat("u_noiseFreq", m_noiseFreq);
@@ -327,9 +336,9 @@ void App::render()
 			Renderer::bindTex(1, GL_TEXTURE_3D, m_evenFogScatterAbsorbTex);
 		}
 		if (m_hooblerOrKovalovs)
-			Renderer::bindTex(2, GL_TEXTURE_2D, m_kovalovsLUT);
+			Renderer::bindTex(2, GL_TEXTURE_2D, m_kovalovsLUT);		// Use Kovalovs' LUT (true).
 		else
-			Renderer::bindTex(2, GL_TEXTURE_2D, m_hooblerAccumLUT);
+			Renderer::bindTex(2, GL_TEXTURE_2D, m_hooblerAccumLUT);	// Use Hoobler's LUT (false).
 
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 	}
@@ -507,6 +516,12 @@ void App::gui()
 					ImGui::Text("Current technique: Exponential shadow mapping");
 					break;
 				}
+
+				ImGui::Checkbox("Exponential or linear froxels?", &m_linearOrExpFroxels);
+				if (m_linearOrExpFroxels)
+					ImGui::Text("Froxel depth distribution: linear");
+				else
+					ImGui::Text("Froxel depth distribution: exponential");
 			}
 			if (ImGui::CollapsingHeader("Light parameters"))
 			{
@@ -865,7 +880,42 @@ GLFWwindow* App::initWindow()
 
 	glViewport(0, 0, m_windowDim.x, m_windowDim.y);
 
+	// Initialise Nvidia Perfkit API:
+	//if (!initPerfkit())
+	//{
+	//	delete newWindow;
+	//	return NULL;
+	//}
+
 	return newWindow;
+}
+
+bool App::initPerfkit()
+{
+	// If dynamic library file couldn't be found, return false:
+	if (getNvPmApiManager()->Construct(L"Dependencies/lib/NvPmApi.Core.dll"))
+	{
+		std::cout << "Failed to load Nvidia Perfkit.\n";
+		return false;
+	}
+
+	// If Perfkit initialisation fails, return false:
+	NVPMRESULT nvResult = getNvPmApi()->Init();
+	if (nvResult != S_OK)
+	{
+		std::cout << "Failed to initialise Nvidia Perfkit.\n";
+		return false;
+	}
+
+	uint64_t contextHandle = (uint64_t)wglGetCurrentContext();
+
+	// Create Perfkit context with OpenGL context:
+	nvResult = getNvPmApi()->CreateContextFromOGLContext(contextHandle, &m_perfkitContext);
+	if (nvResult == NVPM_OK)
+		return false;
+
+	// If no errors occurred during Perfkit loading and initialisation, return true:
+	return true;
 }
 
 GLuint App::loadTexture(const char* filepath, bool flipY)

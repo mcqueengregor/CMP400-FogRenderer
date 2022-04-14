@@ -6,7 +6,6 @@
 
 #include "Shader.h"
 #include "Buffers.h"
-#include "GLErrorManager.h"
 
 #include <string>
 #include <vector>
