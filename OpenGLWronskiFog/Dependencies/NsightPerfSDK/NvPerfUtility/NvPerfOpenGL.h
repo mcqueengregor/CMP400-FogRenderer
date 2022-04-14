@@ -18,8 +18,8 @@
 
 #include "NvPerfInit.h"
 #include "NvPerfDeviceProperties.h"
-#include "NsightPerfSDK/nvperf_opengl_host.h"
-#include "NsightPerfSDK/nvperf_opengl_target.h"
+#include "nvperf_opengl_host.h"
+#include "nvperf_opengl_target.h"
 #include <glad4.3/glad4.3.h>
 #include <string.h>
 namespace nv { namespace perf {

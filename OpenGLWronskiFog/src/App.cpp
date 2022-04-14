@@ -8,6 +8,23 @@ static NvPmApiManager s_NVPMManager;
 NvPmApiManager* getNvPmApiManager() { return &s_NVPMManager; }
 const NvPmApi* getNvPmApi() { return s_NVPMManager.Api(); }
 
+// Include Nvidia NSight Perf SDK:
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+#ifdef _WIN32
+// Suppress redefinition warnings:
+#undef APIENTRY
+// Undefine min and max from windows.h:
+#define NOMINMAX
+#endif
+#include <nvperf_host_impl.h>
+#include <NvPerfUtility/NvPerfReportGeneratorOpenGL.h>
+
+// Define global profiling data:
+nv::perf::profiler::ReportGeneratorOpenGL g_nvPerfSDKReportGenerator;
+NVPW_Device_ClockStatus g_clockStatus = NVPW_DEVICE_CLOCK_STATUS_UNKNOWN;	// Used to restore clock state when exiting.
+
+#endif
+
 App::~App()
 {
 	// Shutdown ImGui:
@@ -24,6 +41,12 @@ App::~App()
 		// Shutdown GLFW:
 		glfwTerminate();
 		std::cout << "GLFW terminated!" << std::endl;
+
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+		// Shutdown Nvidia NSight Perf SDK:
+		g_nvPerfSDKReportGenerator.Reset();
+		nv::perf::OpenGLSetDeviceClockState(g_clockStatus);
+#endif
 	}
 }
 
@@ -59,6 +82,17 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 	ImGui::StyleColorsDark();
 	ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
+
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	// Initialise Nvidia NSight Perf SDK:
+	nv::perf::InitializeNvPerf();
+	g_nvPerfSDKReportGenerator.InitializeReportGenerator();
+	g_nvPerfSDKReportGenerator.SetFrameLevelRangeName("Frame");
+	g_nvPerfSDKReportGenerator.SetNumNestingLevels(3);
+
+	g_clockStatus = nv::perf::OpenGLGetDeviceClockState();
+	nv::perf::OpenGLSetDeviceClockState(NVPW_DEVICE_CLOCK_SETTING_LOCK_TO_RATED_TDP);
+#endif
 
 	return true;
 }
@@ -252,6 +286,10 @@ void App::update(float dt)
 
 void App::render()
 {
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	g_nvPerfSDKReportGenerator.OnFrameStart();
+#endif
+
 	const glm::mat4 view = m_camera.getViewMat();
 
 	// Set view matrix in UBO:

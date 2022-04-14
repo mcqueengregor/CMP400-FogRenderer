@@ -40,7 +40,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <NsightPerfSDK/nvperf_common.h>
+#include <nvperf_common.h>
 
 #if defined(__GNUC__) && defined(NVPA_SHARED_LIB)
     #pragma GCC visibility push(default)

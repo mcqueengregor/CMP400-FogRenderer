@@ -18,6 +18,8 @@
 #include "Model.h"
 #include "PointLight.h"
 
+#define NV_PERF_ENABLE_INSTRUMENTATION
+
 class App
 {
 public:

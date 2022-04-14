@@ -3,11 +3,6 @@
 
 #include <glad4.3/glad4.3.h>
 
-//#undef APIENTRY
-//#include <NsightPerfSDK/nvperf_host_impl.h>
-//#include <NsightPerfSDK/NvPerfUtility/NvPerfReportGeneratorOpenGL.h>
-
-
 /*
 	OpenGL error codes:
 	GL_INVALID_ENUM						= 0x0500 / 1280

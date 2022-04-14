@@ -15,8 +15,8 @@
 */
 #pragma once
 
-#include "NsightPerfSDK/nvperf_host.h"
-#include "NsightPerfSDK/nvperf_target.h"
+#include "nvperf_host.h"
+#include "nvperf_target.h"
 #include "NvPerfInit.h"
 #include <vector>
 

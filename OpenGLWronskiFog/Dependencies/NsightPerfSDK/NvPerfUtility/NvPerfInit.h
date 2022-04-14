@@ -20,8 +20,8 @@
 #include <stdarg.h>
 #include <string>
 #include <cassert>
-#include "NsightPerfSDK/nvperf_host.h"
-#include "NsightPerfSDK/nvperf_target.h"
+#include "nvperf_host.h"
+#include "nvperf_target.h"
 #if defined(_WIN32)
 #include <Windows.h>
 #else

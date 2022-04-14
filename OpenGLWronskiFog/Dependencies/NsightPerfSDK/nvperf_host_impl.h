@@ -45,19 +45,19 @@
 #include <dlfcn.h>
 #endif
 
-#include <NsightPerfSDK/nvperf_common.h>
-#include <NsightPerfSDK/nvperf_host.h>
-#include <NsightPerfSDK/nvperf_target.h>
-#include <NsightPerfSDK/nvperf_d3d12_host.h>
-#include <NsightPerfSDK/nvperf_d3d12_target.h>
-#include <NsightPerfSDK/nvperf_d3d11_host.h>
-#include <NsightPerfSDK/nvperf_d3d11_target.h>
-#include <NsightPerfSDK/nvperf_device_host.h>
-#include <NsightPerfSDK/nvperf_device_target.h>
-#include <NsightPerfSDK/nvperf_vulkan_host.h>
-#include <NsightPerfSDK/nvperf_vulkan_target.h>
-#include <NsightPerfSDK/nvperf_opengl_host.h>
-#include <NsightPerfSDK/nvperf_opengl_target.h>
+#include <nvperf_common.h>
+#include <nvperf_host.h>
+#include <nvperf_target.h>
+#include <nvperf_d3d12_host.h>
+#include <nvperf_d3d12_target.h>
+#include <nvperf_d3d11_host.h>
+#include <nvperf_d3d11_target.h>
+#include <nvperf_device_host.h>
+#include <nvperf_device_target.h>
+#include <nvperf_vulkan_host.h>
+#include <nvperf_vulkan_target.h>
+#include <nvperf_opengl_host.h>
+#include <nvperf_opengl_target.h>
 
 #ifdef __cplusplus
 extern "C" {
