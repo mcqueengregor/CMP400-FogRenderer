@@ -200,22 +200,22 @@ void App::update(float dt)
 	m_planet.setPosition(m_planetPosition);
 	m_planet.scale(2.0f);
 
-	m_light.setPosition(m_pointLightPosition);
-	m_light.setDiffuse(m_pointLightDiffuse);
-	m_light.setRadius(m_pointLightRadius);
+	for (int i = 0; i < NUM_LIGHTS; ++i)
+	{
+		m_light[i].setPosition(m_pointLightPosition[i]);
+		m_light[i].setDiffuse(m_pointLightDiffuse[i]);
+		m_light[i].setRadius(m_pointLightRadius[i]);
 
-	m_lightCubeWorld = glm::translate(glm::mat4(1.0f), m_pointLightPosition);
-	m_lightCubeWorld = glm::scale(m_lightCubeWorld, glm::vec3(0.25f));
+		// Calculate light space matrices:
+		glm::mat4 lightProj = glm::perspective(glm::radians(90.0f), 1.0f, m_lightViewPlanes.x, m_lightViewPlanes.y);
 
-	// Calculate light space matrices:
-	glm::mat4 lightProj = glm::perspective(glm::radians(90.0f), 1.0f, m_lightViewPlanes.x, m_lightViewPlanes.y);
-
-	m_lightSpaceMat[0] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Right	(+ve x)
-	m_lightSpaceMat[1] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Left		(-ve x)
-	m_lightSpaceMat[2] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f));	// Up		(+ve y)
-	m_lightSpaceMat[3] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f));	// Down		(-ve y)
-	m_lightSpaceMat[4] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Forward	(+ve z)
-	m_lightSpaceMat[5] = lightProj * glm::lookAt(m_pointLightPosition, m_pointLightPosition + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Back		(-ve z)
+		m_lightSpaceMat[6 * i + 0] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Right	(+ve x)
+		m_lightSpaceMat[6 * i + 1] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Left		(-ve x)
+		m_lightSpaceMat[6 * i + 2] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f));	// Up		(+ve y)
+		m_lightSpaceMat[6 * i + 3] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f));	// Down		(-ve y)
+		m_lightSpaceMat[6 * i + 4] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Forward	(+ve z)
+		m_lightSpaceMat[6 * i + 5] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Back		(-ve z)
+	}
 
 	// Set shader uniforms:
 	Renderer::pushDebugGroup(m_uniformUpdateText);
@@ -250,10 +250,11 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setBool("u_useShadows", m_useShadows);
 
 		// Set light data:
-		m_fogScatterAbsorbShader.setPointLight("u_pointLights[0]", m_light);
-		m_fogScatterAbsorbShader.setInt("u_numLights", 1);
+		for (int i = 0; i < NUM_LIGHTS; ++i)
+			m_fogScatterAbsorbShader.setPointLight("u_pointLights[" + std::to_string(i) + "]", m_light[i]);
+		m_fogScatterAbsorbShader.setInt("u_numLights", m_numActiveLights);
 		m_fogScatterAbsorbShader.setFloat("u_lightFarPlane", m_lightViewPlanes.y);
-		for (int i = 0; i < 6; ++i)
+		for (int i = 0; i < 6 * NUM_LIGHTS; ++i)
 			m_fogScatterAbsorbShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 		m_fogScatterAbsorbShader.setInt("u_frameIndex", m_frameIndex);
 
@@ -262,14 +263,12 @@ void App::update(float dt)
 
 		m_varianceShadowmapLayeredShader.use();
 		m_varianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
-		m_varianceShadowmapLayeredShader.setVec3("u_lightPos", m_pointLightPosition);
-		for (int i = 0; i < 6; ++i)
+		for (int i = 0; i < 6 * NUM_LIGHTS; ++i)
 			m_varianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 
 		m_instanceVarianceShadowmapLayeredShader.use();
 		m_instanceVarianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
-		m_instanceVarianceShadowmapLayeredShader.setVec3("u_lightPos", m_pointLightPosition);
-		for (int i = 0; i < 6; ++i)
+		for (int i = 0; i < 6 * NUM_LIGHTS; ++i)
 			m_instanceVarianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 	}
 	Renderer::popDebugGroup();
@@ -282,6 +281,85 @@ void App::update(float dt)
 
 	// Update frame index for Halton sequences, wrap round to zero after 60 frames:
 	m_frameIndex <= 60 ? ++m_frameIndex : m_frameIndex = 0;
+
+	// If testing is enabled and not collecting performance stats, update testing variables and start collecting data:
+	if (m_currentlyTesting)
+	{
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+		if (!g_nvPerfSDKReportGenerator.IsCollectingReport())
+		{		
+			// Increment testing setup variable, end testing if last setup has been tested:
+			switch (m_testingSetup)
+			{
+			case START_VAL:
+				m_testingSetup = NO_LUT_STANDARD_SHADOW;
+				
+				// Set standard testing environment variables:
+				m_useShadows = true;
+				m_useTemporal = true;
+				m_useJitter = true;
+				m_useHeterogeneousFog = true;
+				m_noiseOffset = glm::vec3(0.0f);
+				m_noiseFreq = 0.15f;
+				m_fogDensity = 0.03f;
+				m_fogPhaseGParam = -0.5f;
+				m_fogScattering = 1.0f;
+				m_fogAbsorption = 0.0f;
+
+				// Set camera and light data:
+
+
+				m_useLUT = false;
+				m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
+				m_linearOrExpFroxels = false;	// Use exponential froxel distribution.
+
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTStandardShadow", nv::perf::AppendDateTime::yes);
+				break;
+			case NO_LUT_STANDARD_SHADOW:
+				m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
+				m_useLUT = true;
+				m_hooblerOrKovalovs = true;		// Use Hoobler's LUT.
+
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/HooblerLUTStandardShadow", nv::perf::AppendDateTime::yes);
+				break;
+			case HOOBLER_LUT_STANDARD_SHADOW:
+				m_testingSetup = KOVALOVS_LUT_STANDARD_SHADOW;
+				m_hooblerOrKovalovs = false;	// Use Kovalovs's LUT.
+
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/KovalovsLUTStandardShadow", nv::perf::AppendDateTime::yes);
+				break;
+			case KOVALOVS_LUT_STANDARD_SHADOW:
+				m_testingSetup = NO_LUT_VSM;
+				m_useLUT = false;
+				m_shadowMapTechnique = ShadowMapTechnique::VSM;
+
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTVSM", nv::perf::AppendDateTime::yes);
+				break;
+			case NO_LUT_VSM:
+				m_testingSetup = NO_LUT_ESM;
+				m_shadowMapTechnique = ShadowMapTechnique::ESM;
+
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTESM", nv::perf::AppendDateTime::yes);
+				break;
+			case NO_LUT_ESM:
+				m_testingSetup = NO_LUT_LIN_DIST;
+				m_linearOrExpFroxels = true;	// Use linear froxel distribution.
+
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTLinDist", nv::perf::AppendDateTime::yes);
+				break;
+			case NO_LUT_LIN_DIST:
+				m_testingSetup = START_VAL;
+
+				// Reset test variables to default:
+				m_linearOrExpFroxels = false;
+				m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
+
+				m_currentlyTesting = false;
+				return;
+			}
+		}
+#endif
+	}
 }
 
 void App::render()
@@ -308,28 +386,39 @@ void App::render()
 		Renderer::setTarget(m_pointShadowmapArrayFBO);
 		Renderer::clear(1.0f, 1.0f, 0.0f, 1.0f, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Render planet:
-		Renderer::pushDebugGroup(m_planetRenderText);
-		{
-			Renderer::drawShadowmap(m_planet, m_varianceShadowmapLayeredShader);
-		}
-		Renderer::popDebugGroup();
-
-		// Render asteroids:
-		Renderer::pushDebugGroup(m_asteroidRenderText);
-		{
-			Renderer::drawInstanced(m_rock, m_instanceVarianceShadowmapLayeredShader, c_asteroidsCount);
-		}
-		Renderer::popDebugGroup();
-
-		// Render plane:
-		Renderer::pushDebugGroup(m_planeRenderText);
+		for (int i = 0; i < m_numActiveLights; ++i)
 		{
 			m_varianceShadowmapLayeredShader.use();
-			m_varianceShadowmapLayeredShader.setMat4("world", m_planeWorld);
-			Renderer::draw(m_planeVAO, 6, m_varianceShadowmapLayeredShader);
+			m_varianceShadowmapLayeredShader.setVec3("u_lightPos", m_pointLightPosition[i]);
+			m_varianceShadowmapLayeredShader.setInt("u_currentLight", i);
+
+			// Render planet:
+			Renderer::pushDebugGroup(m_planetRenderText);
+			{
+				Renderer::drawShadowmap(m_planet, m_varianceShadowmapLayeredShader);
+			}
+			Renderer::popDebugGroup();
+
+			m_instanceVarianceShadowmapLayeredShader.use();
+			m_instanceVarianceShadowmapLayeredShader.setVec3("u_lightPos", m_pointLightPosition[i]);
+			m_instanceVarianceShadowmapLayeredShader.setInt("u_currentLight", i);
+
+			// Render asteroids:
+			Renderer::pushDebugGroup(m_asteroidRenderText);
+			{
+				Renderer::drawInstanced(m_rock, m_instanceVarianceShadowmapLayeredShader, c_asteroidsCount);
+			}
+			Renderer::popDebugGroup();
+
+			// Render plane:
+			Renderer::pushDebugGroup(m_planeRenderText);
+			{
+				m_varianceShadowmapLayeredShader.use();
+				m_varianceShadowmapLayeredShader.setMat4("world", m_planeWorld);
+				Renderer::draw(m_planeVAO, 6, m_varianceShadowmapLayeredShader);
+			}
+			Renderer::popDebugGroup();
 		}
-		Renderer::popDebugGroup();
 	}
 	Renderer::popDebugGroup();
 
@@ -354,6 +443,9 @@ void App::render()
 	Renderer::popDebugGroup();
 
 	// Dispatch fog scattering and absorption evaluation compute shader ------------------------------------------
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	g_nvPerfSDKReportGenerator.PushRange("Fog scatter/absorb eval");
+#endif
 	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
 	{
 		// Bind unblurred shadowmaps if using standard shadowmapping:
@@ -381,9 +473,16 @@ void App::render()
 		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 	}
 	Renderer::popDebugGroup();
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	g_nvPerfSDKReportGenerator.PopRange();
+#endif
+
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	// Dispatch fog accumulation compute shader ------------------------------------------------------------------
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	g_nvPerfSDKReportGenerator.PushRange("Fog accumulation");
+#endif
 	Renderer::pushDebugGroup(m_fogAccumText);
 	{
 		if (m_evenFrame)
@@ -395,6 +494,9 @@ void App::render()
 		FogRenderer::dispatch(c_fogNumWorkGroups.x, c_fogNumWorkGroups.y, 1, m_fogAccumShader);
 	}
 	Renderer::popDebugGroup();
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	g_nvPerfSDKReportGenerator.PopRange();
+#endif
 
 	// DEPTH PASS ------------------------------------------------------------------------------------------------
 	Renderer::pushDebugGroup(m_depthPassText);
@@ -461,9 +563,15 @@ void App::render()
 		Renderer::pushDebugGroup(m_debugRenderText);
 		{
 			glDisable(GL_CULL_FACE);
-			m_singleColourShader.use();
-			m_singleColourShader.setMat4("world", m_lightCubeWorld);
-			Renderer::draw(m_lightCubeVAO, 36, m_singleColourShader);
+			for (int i = 0; i < m_numActiveLights; ++i)
+			{
+				m_lightCubeWorld = glm::translate(glm::mat4(1.0f), m_pointLightPosition[i]);
+				m_lightCubeWorld = glm::scale(m_lightCubeWorld, glm::vec3(0.25f));
+
+				m_singleColourShader.use();
+				m_singleColourShader.setMat4("world", m_lightCubeWorld);
+				Renderer::draw(m_lightCubeVAO, 36, m_singleColourShader);
+			}
 			glEnable(GL_CULL_FACE);
 		}
 		Renderer::popDebugGroup();
@@ -493,6 +601,10 @@ void App::render()
 	if (m_wireframe)
 		Renderer::setWireframe(true);
 
+#ifdef NV_PERF_ENABLE_INSTRUMENTATION
+	g_nvPerfSDKReportGenerator.OnFrameEnd();
+#endif
+
 	// Setup this frame's view * proj matrix to be used in the next frame for temporal reprojection:
 	glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(m_proj * m_camera.getViewMat()));
 }
@@ -514,6 +626,15 @@ void App::gui()
 			ImGui::Checkbox("Apply fog", &m_applyFog);
 
 			ImGui::DragFloat3("Planet position", &m_planetPosition.x, 0.1f);
+
+			if (ImGui::Button("Start testing"))
+				if (!m_currentlyTesting)
+				{
+					m_currentlyTesting = true;
+					m_testingSetup = TestingSetup::START_VAL;
+				}
+			if (m_currentlyTesting)
+				ImGui::Text("Currently testing, don't adjust any parameters!");
 
 			if (ImGui::CollapsingHeader("Fog parameters"))
 			{
@@ -563,9 +684,11 @@ void App::gui()
 			}
 			if (ImGui::CollapsingHeader("Light parameters"))
 			{
-				ImGui::SliderFloat3("Light position", &m_pointLightPosition.x, -50.0f, 50.0f);
-				ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse.r, 0.0f, 1.0f);
-				ImGui::SliderFloat("Light radius", &m_pointLightRadius, 1.0f, 100.0f);
+				ImGui::SliderInt("Num active lights", (int*)&m_numActiveLights, 1, NUM_LIGHTS);
+				ImGui::SliderInt("Current light", (int*)&m_currentLight, 0, NUM_LIGHTS - 1);
+				ImGui::SliderFloat3("Light position", &m_pointLightPosition[m_currentLight].x, -50.0f, 50.0f);
+				ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse[m_currentLight].r, 0.0f, 1.0f);
+				ImGui::SliderFloat("Light radius", &m_pointLightRadius[m_currentLight], 1.0f, 100.0f);
 				ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.2f, 0.0f);
 				ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
 				ImGui::SliderFloat("Light linear", &m_pointLightLinear, 0.0f, 1.0f);
@@ -716,9 +839,9 @@ void App::setupFBOs()
 	m_fullscreenColourFBO = createFBO(m_windowDim, m_FBOColourBuffer);
 	m_fullscreenDepthFBO = createFBO(m_windowDim, m_FBODepthBuffer);
 
-	m_pointShadowmapArrayFBO =		createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6), m_pointShadowmapArrayColour, m_pointShadowmapArrayDepth);
-	m_horiBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6), m_horiBlurShadowmapArrayColour);
-	m_vertBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6), m_vertBlurShadowmapArrayColour);
+	m_pointShadowmapArrayFBO =		createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_pointShadowmapArrayColour, m_pointShadowmapArrayDepth);
+	m_horiBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_horiBlurShadowmapArrayColour);
+	m_vertBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_vertBlurShadowmapArrayColour);
 }
 
 void App::generateLUTs()
@@ -738,9 +861,9 @@ void App::generateLUTs()
 	m_hooblerAccumLUTShader.setFloat("u_vecLength", vecLength);
 	m_hooblerAccumLUTShader.setFloat("u_lightZFar", lightZFar);
 
-	m_hooblerAccumLUTShader.setFloat("u_constant", m_light.getConstant());
-	m_hooblerAccumLUTShader.setFloat("u_linear", m_light.getLinear());
-	m_hooblerAccumLUTShader.setFloat("u_quadratic", m_light.getQuadratic());
+	m_hooblerAccumLUTShader.setFloat("u_constant", m_light[0].getConstant());
+	m_hooblerAccumLUTShader.setFloat("u_linear", m_light[0].getLinear());
+	m_hooblerAccumLUTShader.setFloat("u_quadratic", m_light[0].getQuadratic());
 
 	glBindImageTexture(3, m_hooblerScatterAccumTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glBindImageTexture(4, m_hooblerAccumLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -757,9 +880,9 @@ void App::generateLUTs()
 
 	m_kovalovsLUTShader.setFloat("u_gParam", m_fogPhaseGParam);
 
-	m_kovalovsLUTShader.setFloat("u_constant", m_light.getConstant());
-	m_kovalovsLUTShader.setFloat("u_linear", m_light.getLinear());
-	m_kovalovsLUTShader.setFloat("u_quadratic", m_light.getQuadratic());
+	m_kovalovsLUTShader.setFloat("u_constant", m_light[0].getConstant());
+	m_kovalovsLUTShader.setFloat("u_linear", m_light[0].getLinear());
+	m_kovalovsLUTShader.setFloat("u_quadratic", m_light[0].getQuadratic());
 
 	glBindImageTexture(6, m_kovalovsLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 	glDispatchCompute(1, 1024, 1);

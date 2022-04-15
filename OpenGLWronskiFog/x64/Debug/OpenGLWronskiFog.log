@@ -1,1 +1,26 @@
 ﻿  App.cpp
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Model.h(189,1): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(21,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(30,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(35,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(71,1): warning C4267: 'argument': conversion from 'size_t' to 'GLenum', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(80,1): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(85,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(109,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(122,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(174,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\minwindef.h(130,1): warning C4005: 'APIENTRY': macro redefinition
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\glad4.3\glad4.3.h(32): message : see previous definition of 'APIENTRY'
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(117,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(389,21): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(566,22): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(703,38): warning C4312: 'type cast': conversion from 'GLuint' to 'void *' of greater size
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(705,40): warning C4312: 'type cast': conversion from 'GLuint' to 'void *' of greater size
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(749,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(766,73): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(768,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(770,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(772,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(1036,19): warning C4150: deletion of pointer to incomplete type 'GLFWwindow'; no destructor called
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\GLFW\glfw3.h(1157): message : see declaration of 'GLFWwindow'
+  OpenGLWronskiFog.vcxproj -> C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\x64\Debug\OpenGLWronskiFog.exe

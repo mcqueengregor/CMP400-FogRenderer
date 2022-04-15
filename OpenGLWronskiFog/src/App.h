@@ -117,16 +117,30 @@ private:
 	glm::vec2			m_lightViewPlanes	= glm::vec2(0.1f, 100.0f);
 
 	// Lights:
-	PointLight m_light;
+#define NUM_LIGHTS 4
+	PointLight m_light[NUM_LIGHTS];
 
 	// Light data:
-	glm::vec3 m_pointLightPosition	= glm::vec3(0.0f, 3.0f, 10.0f);
-	glm::vec3 m_pointLightDiffuse	= glm::vec3(1.0f);
+	glm::vec3 m_pointLightPosition[NUM_LIGHTS]	= {	glm::vec3(0.0f,   3.0f,  10.0f),
+													glm::vec3(0.0f,   3.0f,  50.0f),
+													glm::vec3(50.0f,  1.0f,  10.0f),
+													glm::vec3(-5.0f,   0.0f, -50.0f) };
+	glm::vec3 m_pointLightDiffuse[NUM_LIGHTS]	= {	glm::vec3(1.0f),
+													glm::vec3(1.0f),
+													glm::vec3(1.0f),
+													glm::vec3(1.0f) };
+	float m_pointLightRadius[NUM_LIGHTS]		= {	20.0f,
+													20.0f,
+													20.0f,
+													20.0f };
 	float m_pointLightConstant		= 1.0f;
 	float m_pointLightLinear		= 0.09f;
 	float m_pointLightQuadratic		= 0.032f;
-	float m_pointLightRadius		= 20.0f;
 	float m_lightIntensity			= 100.0f;
+
+	GLuint m_currentLight			= 0;
+	GLuint m_numActiveLights		= 1;
+	glm::mat4 m_lightSpaceMat[6 * NUM_LIGHTS];
 
 	// VAOs, VBOs and EBOs:
 	GLuint m_fullscreenQuadVAO;
@@ -195,13 +209,9 @@ private:
 	glm::mat4 m_proj;
 	glm::mat4 m_planeWorld;
 	glm::mat4 m_lightCubeWorld;
-	glm::mat4 m_lightSpaceMat[6];
 
 	// Nvidia Perfkit data:
 	uint64_t m_perfkitContext;
-
-	// Nsight Perf SDK data:
-	//nv::perf::profiler::ReportGeneratorOpenGL m_nvPerf;
 
 	// Misc application data:
 	float	m_dt{};
@@ -234,9 +244,26 @@ private:
 		ESM			= 2
 	} m_shadowMapTechnique;
 
-	enum TestingSetup
+	enum ProfilerUsed
 	{
 		PERFKIT  = 0,
 		PERF_SDK = 1
+	} m_profilerUsed;
+
+	enum TestingSetup
+	{
+		START_VAL					 = -1,
+
+		// LUT variables:
+		NO_LUT_STANDARD_SHADOW		 = 0,			// Also accounts for NO_LUT_EXP_DIST
+		HOOBLER_LUT_STANDARD_SHADOW  = 1,
+		KOVALOVS_LUT_STANDARD_SHADOW = 2,
+
+		// Shadow mapping variables:
+		NO_LUT_VSM					 = 3,
+		NO_LUT_ESM					 = 4,
+
+		// Froxel distribution variables:
+		NO_LUT_LIN_DIST				 = 5
 	} m_testingSetup;
 };
