@@ -3,6 +3,7 @@
 // Define Nvidia Perfkit data:
 #define NVPM_INITGUID
 #include "NVidiaPerfkit/NvPmApi.Manager.h"
+#include "PerfkitCounters.h"
 
 static NvPmApiManager s_NVPMManager;
 NvPmApiManager* getNvPmApiManager() { return &s_NVPMManager; }
@@ -27,9 +28,9 @@ NVPW_Device_ClockStatus g_clockStatus = NVPW_DEVICE_CLOCK_STATUS_UNKNOWN;	// Use
 
 App::~App()
 {
-	// Shutdown ImGui:
 	if (m_window)
 	{
+		// Shutdown ImGui:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 
@@ -92,6 +93,11 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 
 	g_clockStatus = nv::perf::OpenGLGetDeviceClockState();
 	nv::perf::OpenGLSetDeviceClockState(NVPW_DEVICE_CLOCK_SETTING_LOCK_TO_RATED_TDP);
+#else
+	// Initialise Nvidia Perfkit:
+	if (m_profilerUsed == ProfilerUsed::PERFKIT)
+		if (!initPerfkit())
+			return false;
 #endif
 
 	return true;
@@ -200,7 +206,7 @@ void App::update(float dt)
 	m_planet.setPosition(m_planetPosition);
 	m_planet.scale(2.0f);
 
-	for (int i = 0; i < NUM_LIGHTS; ++i)
+	for (int i = 0; i < m_numActiveLights; ++i)
 	{
 		m_light[i].setPosition(m_pointLightPosition[i]);
 		m_light[i].setDiffuse(m_pointLightDiffuse[i]);
@@ -250,11 +256,11 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setBool("u_useShadows", m_useShadows);
 
 		// Set light data:
-		for (int i = 0; i < NUM_LIGHTS; ++i)
+		for (int i = 0; i < m_numActiveLights; ++i)
 			m_fogScatterAbsorbShader.setPointLight("u_pointLights[" + std::to_string(i) + "]", m_light[i]);
-		m_fogScatterAbsorbShader.setInt("u_numLights", m_numActiveLights);
+		m_fogScatterAbsorbShader.setInt("u_numActiveLights", m_numActiveLights);
 		m_fogScatterAbsorbShader.setFloat("u_lightFarPlane", m_lightViewPlanes.y);
-		for (int i = 0; i < 6 * NUM_LIGHTS; ++i)
+		for (int i = 0; i < 6 * m_numActiveLights; ++i)
 			m_fogScatterAbsorbShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 		m_fogScatterAbsorbShader.setInt("u_frameIndex", m_frameIndex);
 
@@ -263,12 +269,12 @@ void App::update(float dt)
 
 		m_varianceShadowmapLayeredShader.use();
 		m_varianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
-		for (int i = 0; i < 6 * NUM_LIGHTS; ++i)
+		for (int i = 0; i < 6 * m_numActiveLights; ++i)
 			m_varianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 
 		m_instanceVarianceShadowmapLayeredShader.use();
 		m_instanceVarianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
-		for (int i = 0; i < 6 * NUM_LIGHTS; ++i)
+		for (int i = 0; i < 6 * m_numActiveLights; ++i)
 			m_instanceVarianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 	}
 	Renderer::popDebugGroup();
@@ -446,31 +452,49 @@ void App::render()
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 	g_nvPerfSDKReportGenerator.PushRange("Fog scatter/absorb eval");
 #endif
+
 	Renderer::pushDebugGroup(m_fogScatterAbsorbText);
 	{
-		// Bind unblurred shadowmaps if using standard shadowmapping:
-		if (m_shadowMapTechnique == STANDARD)
-			Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_pointShadowmapArrayColour);
-		// Otherwise, bind blurred shadowmaps:
-		else
-			Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_vertBlurShadowmapArrayColour);
-
-		if (m_evenFrame)
+		// If testing with Perfkit, instrument dispatch call:
+		if (m_currentlyTesting && m_profilerUsed == ProfilerUsed::PERFKIT)
 		{
-			FogRenderer::bindImage(1, m_evenFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
-			Renderer::bindTex(1, GL_TEXTURE_3D, m_oddFogScatterAbsorbTex);
+			GLuint nCount;
+			NVPMRESULT nvResult;
+			nvResult = getNvPmApi()->BeginExperiment(m_perfkitContext, &nCount);
+
+			for (int i = 0; i < nCount; ++i)
+			{
+				nvResult = getNvPmApi()->BeginPass(m_perfkitContext, i);
+				nvResult = getNvPmApi()->BeginObject(m_perfkitContext, 0);
+
+				runFogScatterAbsorb();
+
+				GLCALL(glFinish());
+				nvResult = getNvPmApi()->EndObject(m_perfkitContext, 0);
+				nvResult = getNvPmApi()->EndPass(m_perfkitContext, i);
+			}
+			nvResult = getNvPmApi()->EndExperiment(m_perfkitContext);
+
+			uint64_t val, cycles;
+
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_FRAME_TIME, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_ANY, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_GPU, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_KERNEL, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_RENDER, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_SWAP, 0, &val, &cycles);
+
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_GPU_CYCLES_IDLE, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_GPU_CYCLES_IDLE, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_WARP_BRANCHES_EXECUTED, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_WARP_BRANCHES_DIVERGED, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_WARP_BRANCHES_TAKEN, 0, &val, &cycles);
+
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_TOTAL_COMPUTE_INSTRUCTIONS, 0, &val, &cycles);
+			nvResult = getNvPmApi()->GetCounterValueByName(m_perfkitContext, NV_BOTTLENECK_COUNTER_ID, 0, &val, &cycles);
 		}
 		else
-		{
-			FogRenderer::bindImage(1, m_oddFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
-			Renderer::bindTex(1, GL_TEXTURE_3D, m_evenFogScatterAbsorbTex);
-		}
-		if (m_hooblerOrKovalovs)
-			Renderer::bindTex(2, GL_TEXTURE_2D, m_kovalovsLUT);		// Use Kovalovs' LUT (true).
-		else
-			Renderer::bindTex(2, GL_TEXTURE_2D, m_hooblerAccumLUT);	// Use Hoobler's LUT (false).
-
-		FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
+			runFogScatterAbsorb();
 	}
 	Renderer::popDebugGroup();
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
@@ -494,6 +518,7 @@ void App::render()
 		FogRenderer::dispatch(c_fogNumWorkGroups.x, c_fogNumWorkGroups.y, 1, m_fogAccumShader);
 	}
 	Renderer::popDebugGroup();
+
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 	g_nvPerfSDKReportGenerator.PopRange();
 #endif
@@ -710,6 +735,33 @@ void App::gui()
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	}
 	Renderer::popDebugGroup();
+}
+
+void App::runFogScatterAbsorb()
+{
+	// Bind unblurred shadowmaps if using standard shadowmapping:
+	if (m_shadowMapTechnique == STANDARD)
+		Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_pointShadowmapArrayColour);
+	// Otherwise, bind blurred shadowmaps:
+	else
+		Renderer::bindTex(0, GL_TEXTURE_2D_ARRAY, m_vertBlurShadowmapArrayColour);
+
+	if (m_evenFrame)
+	{
+		FogRenderer::bindImage(1, m_evenFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
+		Renderer::bindTex(1, GL_TEXTURE_3D, m_oddFogScatterAbsorbTex);
+	}
+	else
+	{
+		FogRenderer::bindImage(1, m_oddFogScatterAbsorbTex, GL_WRITE_ONLY, GL_RGBA32F);
+		Renderer::bindTex(1, GL_TEXTURE_3D, m_evenFogScatterAbsorbTex);
+	}
+	if (m_hooblerOrKovalovs)
+		Renderer::bindTex(2, GL_TEXTURE_2D, m_kovalovsLUT);		// Use Kovalovs' LUT (true).
+	else
+		Renderer::bindTex(2, GL_TEXTURE_2D, m_hooblerAccumLUT);	// Use Hoobler's LUT (false).
+
+	FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 }
 
 void App::setupMatrices()
@@ -1068,14 +1120,34 @@ bool App::initPerfkit()
 		return false;
 	}
 
-	uint64_t contextHandle = (uint64_t)wglGetCurrentContext();
+	const uint64_t contextHandle = (uint64_t)wglGetCurrentContext();
 
 	// Create Perfkit context with OpenGL context:
 	nvResult = getNvPmApi()->CreateContextFromOGLContext(contextHandle, &m_perfkitContext);
-	if (nvResult == NVPM_OK)
+	if (nvResult != NVPM_OK)
 		return false;
 
-	// If no errors occurred during Perfkit loading and initialisation, return true:
+	std::cout << "Successfully initialised Perfkit!" << std::endl;
+
+	// If no errors occurred during Perfkit loading and initialisation, add counters and return true:
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_FRAME_TIME);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_ANY);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_GPU);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_KERNEL);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_RENDER);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_DRIVER_WAIT_FOR_SWAP);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_MEMORY_ALLOCATED);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_MEMORY_ALLOCATED_TEX);
+
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_GPU_CYCLES_IDLE);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_GPU_CYCLES_BUSY);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_WARP_BRANCHES_EXECUTED);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_WARP_BRANCHES_DIVERGED);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_WARP_BRANCHES_TAKEN);
+
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_TOTAL_COMPUTE_INSTRUCTIONS);
+	nvResult = getNvPmApi()->AddCounterByName(m_perfkitContext, NV_BOTTLENECK_COUNTER_ID);
+
 	return true;
 }
 

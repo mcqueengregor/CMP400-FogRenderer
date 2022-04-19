@@ -1,5 +1,4 @@
 #version 430 core
-
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 72) out;	// NUM_LIGHTS * 18 vertices
 

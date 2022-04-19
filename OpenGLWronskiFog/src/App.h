@@ -18,7 +18,7 @@
 #include "Model.h"
 #include "PointLight.h"
 
-#define NV_PERF_ENABLE_INSTRUMENTATION
+//#define NV_PERF_ENABLE_INSTRUMENTATION
 
 class App
 {
@@ -42,6 +42,8 @@ private:
 	void update(float dt);
 	void render();
 	void gui();
+
+	void runFogScatterAbsorb();	// Turned into a function purely to make Perfkit Code cleaner.
 
 	void setupMatrices();
 	void setupShaders();
@@ -248,7 +250,7 @@ private:
 	{
 		PERFKIT  = 0,
 		PERF_SDK = 1
-	} m_profilerUsed;
+	} m_profilerUsed = PERFKIT;
 
 	enum TestingSetup
 	{

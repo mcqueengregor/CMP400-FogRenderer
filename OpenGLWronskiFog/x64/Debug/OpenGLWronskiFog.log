@@ -11,16 +11,22 @@ C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\sr
 C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\Renderer.h(174,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\shared\minwindef.h(130,1): warning C4005: 'APIENTRY': macro redefinition
 C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\glad4.3\glad4.3.h(32): message : see previous definition of 'APIENTRY'
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(117,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(389,21): warning C4018: '<': signed/unsigned mismatch
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(566,22): warning C4018: '<': signed/unsigned mismatch
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(703,38): warning C4312: 'type cast': conversion from 'GLuint' to 'void *' of greater size
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(705,40): warning C4312: 'type cast': conversion from 'GLuint' to 'void *' of greater size
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(749,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(766,73): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(768,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(770,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(772,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(1036,19): warning C4150: deletion of pointer to incomplete type 'GLFWwindow'; no destructor called
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(123,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(209,20): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(259,21): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(263,21): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(272,21): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(277,21): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(395,21): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(465,22): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(591,22): warning C4018: '<': signed/unsigned mismatch
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(728,38): warning C4312: 'type cast': conversion from 'GLuint' to 'void *' of greater size
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(730,40): warning C4312: 'type cast': conversion from 'GLuint' to 'void *' of greater size
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(801,18): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(818,73): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(820,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(822,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(824,86): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\src\App.cpp(1088,19): warning C4150: deletion of pointer to incomplete type 'GLFWwindow'; no destructor called
 C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\OpenGLWronskiFog\Dependencies\include\GLFW\glfw3.h(1157): message : see declaration of 'GLFWwindow'
   OpenGLWronskiFog.vcxproj -> C:\UniStuff\Year4\CMP400 - HonoursProject\CMP400-FogRenderer\x64\Debug\OpenGLWronskiFog.exe

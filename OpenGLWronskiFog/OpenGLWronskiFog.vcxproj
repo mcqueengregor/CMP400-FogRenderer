@@ -175,6 +175,7 @@
     <ClInclude Include="Dependencies\include\imgui\imstb_textedit.h" />
     <ClInclude Include="Dependencies\include\imgui\imstb_truetype.h" />
     <ClInclude Include="src\Light.h" />
+    <ClInclude Include="src\PerfkitCounters.h" />
     <ClInclude Include="src\PointLight.h" />
     <ClInclude Include="src\FogRenderer.h" />
     <ClInclude Include="src\App.h" />

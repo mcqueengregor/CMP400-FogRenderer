@@ -64,7 +64,7 @@ uniform float	u_noiseFreq;
 uniform vec3	u_noiseOffset;
 
 // Light data uniforms:
-uniform int			u_numLights;
+uniform int			u_numActiveLights;
 uniform float		u_lightFarPlane;
 uniform PointLight	u_pointLights[MAX_LIGHTS];
 uniform mat4		u_lightMatrices[6 * MAX_LIGHTS];
@@ -221,6 +221,14 @@ bool outsideShadowmapBounds(vec3 projectedCoords)
 
 float calcShadow(uint lightIndex, vec3 worldPos)
 {
+	/*
+		When considering the lighting for a froxel from a given light, how does shadowing get taken into account?
+		Each light knows about its surroundings, and its associated shadowmap details when froxels would be in this
+		light's shadow. If one froxel is in a light's shadow, it may or may not be in the shadow of other lights as
+		well.
+		Because of this, each froxel needs to check whether it is in shadow for each light. 
+	*/
+
 	// Iterate through all layers of shadowmap texture array for the current light:
 	for (uint i = 6 * lightIndex; i < 6 * lightIndex + 6; ++i)
 	{
@@ -231,7 +239,7 @@ float calcShadow(uint lightIndex, vec3 worldPos)
 		vec3 projectedCoords = lightSpacePos.xyz / lightSpacePos.w;
 
 		// Transform from [-1,1] range to [0,1] range:
-		projectedCoords = projectedCoords * 0.5 + 0.5;
+		projectedCoords =  0.5 * projectedCoords + 0.5;
 
 		// If projected position is within light frustum, perform shadow test:
 		if (!outsideShadowmapBounds(projectedCoords))
@@ -533,7 +541,7 @@ void main()
 	vec3 lighting = vec3(0.0);
 
 	// Accumulate lighting at this froxel:
-	for (uint i = 1; i < 2; ++i)
+	for (uint i = 0; i < u_numActiveLights; ++i)
 	{
 		vec3 light;
 		
