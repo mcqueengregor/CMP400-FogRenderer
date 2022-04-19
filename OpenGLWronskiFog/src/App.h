@@ -18,7 +18,7 @@
 #include "Model.h"
 #include "PointLight.h"
 
-//#define NV_PERF_ENABLE_INSTRUMENTATION
+#define NV_PERF_ENABLE_INSTRUMENTATION
 
 class App
 {
@@ -212,8 +212,9 @@ private:
 	glm::mat4 m_planeWorld;
 	glm::mat4 m_lightCubeWorld;
 
-	// Nvidia Perfkit data:
+	// Nvidia Perfkit/NSight Perf SDK data:
 	uint64_t m_perfkitContext;
+	const GLuint numTestIterations = 30;
 
 	// Misc application data:
 	float	m_dt{};
@@ -250,7 +251,7 @@ private:
 	{
 		PERFKIT  = 0,
 		PERF_SDK = 1
-	} m_profilerUsed = PERFKIT;
+	} m_profilerUsed = PERF_SDK;
 
 	enum TestingSetup
 	{

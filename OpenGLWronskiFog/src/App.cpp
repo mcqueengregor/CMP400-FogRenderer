@@ -86,6 +86,8 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 	// Initialise Nvidia NSight Perf SDK:
+	g_clockStatus = NVPW_DEVICE_CLOCK_STATUS_UNKNOWN;
+
 	nv::perf::InitializeNvPerf();
 	g_nvPerfSDKReportGenerator.InitializeReportGenerator();
 	g_nvPerfSDKReportGenerator.SetFrameLevelRangeName("Frame");
@@ -306,6 +308,7 @@ void App::update(float dt)
 				m_useJitter = true;
 				m_useHeterogeneousFog = true;
 				m_noiseOffset = glm::vec3(0.0f);
+				m_windDirection = glm::vec3(0.0f);
 				m_noiseFreq = 0.15f;
 				m_fogDensity = 0.03f;
 				m_fogPhaseGParam = -0.5f;
@@ -319,39 +322,39 @@ void App::update(float dt)
 				m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
 				m_linearOrExpFroxels = false;	// Use exponential froxel distribution.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTStandardShadow", nv::perf::AppendDateTime::yes);
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_StandardShadow", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_STANDARD_SHADOW:
 				m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
 				m_useLUT = true;
 				m_hooblerOrKovalovs = true;		// Use Hoobler's LUT.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/HooblerLUTStandardShadow", nv::perf::AppendDateTime::yes);
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\HooblerLUT_StandardShadow", nv::perf::AppendDateTime::yes);
 				break;
 			case HOOBLER_LUT_STANDARD_SHADOW:
 				m_testingSetup = KOVALOVS_LUT_STANDARD_SHADOW;
 				m_hooblerOrKovalovs = false;	// Use Kovalovs's LUT.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/KovalovsLUTStandardShadow", nv::perf::AppendDateTime::yes);
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\KovalovsLUT_StandardShadow", nv::perf::AppendDateTime::yes);
 				break;
 			case KOVALOVS_LUT_STANDARD_SHADOW:
 				m_testingSetup = NO_LUT_VSM;
 				m_useLUT = false;
 				m_shadowMapTechnique = ShadowMapTechnique::VSM;
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTVSM", nv::perf::AppendDateTime::yes);
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_VSM", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_VSM:
 				m_testingSetup = NO_LUT_ESM;
 				m_shadowMapTechnique = ShadowMapTechnique::ESM;
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTESM", nv::perf::AppendDateTime::yes);
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_ESM", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_ESM:
 				m_testingSetup = NO_LUT_LIN_DIST;
 				m_linearOrExpFroxels = true;	// Use linear froxel distribution.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports/NoLUTLinDist", nv::perf::AppendDateTime::yes);
+				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_LinDist", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_LIN_DIST:
 				m_testingSetup = START_VAL;
