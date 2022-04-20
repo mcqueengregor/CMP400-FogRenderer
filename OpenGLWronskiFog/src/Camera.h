@@ -30,6 +30,9 @@ public:
 	glm::vec3	getForward() { return m_forward; };
 	void		resetFirstMouse() { m_firstMouse = true; }
 
+	void setPitch(float newPitch) { m_pitch = newPitch; }
+	void setYaw(float newYaw) { m_yaw = newYaw; }
+
 private:
 	glm::vec3	m_position = glm::vec3(0.0f, 0.0f, 3.0f);
 	glm::vec3	m_forward = glm::vec3(0.0f, 0.0f, -1.0f);

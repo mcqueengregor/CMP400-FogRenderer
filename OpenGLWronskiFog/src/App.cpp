@@ -98,8 +98,12 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 #else
 	// Initialise Nvidia Perfkit:
 	if (m_profilerUsed == ProfilerUsed::PERFKIT)
+	{
 		if (!initPerfkit())
 			return false;
+	}
+	else
+		std::cout << "No profiling tools were initialised." << std::endl;
 #endif
 
 	return true;
@@ -301,8 +305,9 @@ void App::update(float dt)
 			{
 			case START_VAL:
 				m_testingSetup = NO_LUT_STANDARD_SHADOW;
-				
+
 				// Set standard testing environment variables:
+				m_applyFog = true;
 				m_useShadows = true;
 				m_useTemporal = true;
 				m_useJitter = true;
@@ -316,45 +321,59 @@ void App::update(float dt)
 				m_fogAbsorption = 0.0f;
 
 				// Set camera and light data:
+				m_camera.setPosition(65.0f, 2.7f, 1.7f);
+				m_camera.setPitch(1.3f);
+				m_camera.setYaw(-189.7f);
+				m_camera.findForward();
 
+				m_numActiveLights = 4;
+
+				m_pointLightPosition[0] = glm::vec3(0.0f, 3.0f, 10.0f);
+				m_pointLightPosition[1] = glm::vec3(0.0f, 3.0f, 50.0f);
+				m_pointLightPosition[2] = glm::vec3(50.0f, 1.0f, 10.0f);
+				m_pointLightPosition[3] = glm::vec3(-5.0f, 0.0f, -50.0f);
+						
+				m_pointLightDiffuse[0] = glm::vec3(1.0f);
+				m_pointLightDiffuse[1] = glm::vec3(1.0f);
+				m_pointLightDiffuse[2] = glm::vec3(1.0f);
+				m_pointLightDiffuse[3] = glm::vec3(1.0f);
+
+				m_pointLightRadius[0] = 20.0f;
+				m_pointLightRadius[1] = 20.0f;
+				m_pointLightRadius[2] = 20.0f;
+				m_pointLightRadius[3] = 20.0f;
 
 				m_useLUT = false;
 				m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
 				m_linearOrExpFroxels = false;	// Use exponential froxel distribution.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_StandardShadow", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_STANDARD_SHADOW:
 				m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
 				m_useLUT = true;
 				m_hooblerOrKovalovs = true;		// Use Hoobler's LUT.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\HooblerLUT_StandardShadow", nv::perf::AppendDateTime::yes);
 				break;
 			case HOOBLER_LUT_STANDARD_SHADOW:
 				m_testingSetup = KOVALOVS_LUT_STANDARD_SHADOW;
 				m_hooblerOrKovalovs = false;	// Use Kovalovs's LUT.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\KovalovsLUT_StandardShadow", nv::perf::AppendDateTime::yes);
 				break;
 			case KOVALOVS_LUT_STANDARD_SHADOW:
 				m_testingSetup = NO_LUT_VSM;
 				m_useLUT = false;
 				m_shadowMapTechnique = ShadowMapTechnique::VSM;
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_VSM", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_VSM:
 				m_testingSetup = NO_LUT_ESM;
 				m_shadowMapTechnique = ShadowMapTechnique::ESM;
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_ESM", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_ESM:
 				m_testingSetup = NO_LUT_LIN_DIST;
 				m_linearOrExpFroxels = true;	// Use linear froxel distribution.
 
-				g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame("NSightPerfSDKReports\\NoLUT_LinDist", nv::perf::AppendDateTime::yes);
 				break;
 			case NO_LUT_LIN_DIST:
 				m_testingSetup = START_VAL;
@@ -366,6 +385,7 @@ void App::update(float dt)
 				m_currentlyTesting = false;
 				return;
 			}
+			g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame(m_filePaths[(int)m_testingSetup], nv::perf::AppendDateTime::yes);
 		}
 #endif
 	}
@@ -1095,13 +1115,6 @@ GLFWwindow* App::initWindow()
 		<< glGetString(GL_VERSION) << "\n\n";
 
 	glViewport(0, 0, m_windowDim.x, m_windowDim.y);
-
-	// Initialise Nvidia Perfkit API:
-	//if (!initPerfkit())
-	//{
-	//	delete newWindow;
-	//	return NULL;
-	//}
 
 	return newWindow;
 }

@@ -34,7 +34,7 @@ void main()
 
 	float phase;
 
-	// Avoid NaN error if current pixel is centre and thus dir is zero vector:
+	// Avoid NaN error if current texel is centre and thus dir is zero vector:
 	if (length(dir) == 0.0)
 		phase = PhaseHG(1.0, u_gParam);
 	else
