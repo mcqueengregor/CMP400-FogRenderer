@@ -214,15 +214,15 @@ private:
 
 	// Nvidia Perfkit/NSight Perf SDK data:
 	uint64_t		m_perfkitContext;
-	const GLuint	c_numTestIterations = 30;
-	GLuint			m_currentIteration = 0;
+	const GLuint	c_numTestIterations = 100;
+	GLuint			m_currentIteration = c_numTestIterations;
 	const char*		m_filePaths[6] = {
-		"NSightPerfSDKReports\\NoLUT_StandardShadow",
-		"NSightPerfSDKReports\\HooblerLUT_StandardShadow",
-		"NSightPerfSDKReports\\KovalovsLUT_StandardShadow",
-		"NSightPerfSDKReports\\NoLUT_VSM",
-		"NSightPerfSDKReports\\NoLUT_ESM",
-		"NSightPerfSDKReports\\NoLUT_LinDist"
+		"NSightPerfSDKReports\\NoLUT_StandardShadow\\",
+		"NSightPerfSDKReports\\HooblerLUT_StandardShadow\\",
+		"NSightPerfSDKReports\\KovalovsLUT_StandardShadow\\",
+		"NSightPerfSDKReports\\NoLUT_VSM\\",
+		"NSightPerfSDKReports\\NoLUT_ESM\\",
+		"NSightPerfSDKReports\\NoLUT_LinDist\\"
 	};
 
 	// Misc application data:

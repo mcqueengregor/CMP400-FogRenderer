@@ -249,7 +249,7 @@ float calcShadow(uint lightIndex, vec3 worldPos)
 			moments.x *= u_lightFarPlane;
 			moments.y *= u_lightFarPlane * u_lightFarPlane;
 			
-			vec3 lightDir = worldPos - u_pointLights[0].position;
+			vec3 lightDir = worldPos - u_pointLights[lightIndex].position;
 			float currentDepth = length(lightDir);
 
 			const float bias = 0.0;

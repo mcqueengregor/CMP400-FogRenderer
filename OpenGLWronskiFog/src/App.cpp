@@ -300,92 +300,99 @@ void App::update(float dt)
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 		if (!g_nvPerfSDKReportGenerator.IsCollectingReport())
 		{		
-			// Increment testing setup variable, end testing if last setup has been tested:
-			switch (m_testingSetup)
+			++m_currentIteration;
+			if (m_currentIteration >= c_numTestIterations)
 			{
-			case START_VAL:
-				m_testingSetup = NO_LUT_STANDARD_SHADOW;
+				// Increment testing setup variable, end testing if last setup has been tested:
+				switch (m_testingSetup)
+				{
+				case START_VAL:
+					m_testingSetup = NO_LUT_STANDARD_SHADOW;
 
-				// Set standard testing environment variables:
-				m_applyFog = true;
-				m_useShadows = true;
-				m_useTemporal = true;
-				m_useJitter = true;
-				m_useHeterogeneousFog = true;
-				m_noiseOffset = glm::vec3(0.0f);
-				m_windDirection = glm::vec3(0.0f);
-				m_noiseFreq = 0.15f;
-				m_fogDensity = 0.03f;
-				m_fogPhaseGParam = -0.5f;
-				m_fogScattering = 1.0f;
-				m_fogAbsorption = 0.0f;
+					// Set standard testing environment variables:
+					m_applyFog = true;
+					m_useShadows = true;
+					m_useTemporal = true;
+					m_useJitter = true;
+					m_useHeterogeneousFog = true;
+					m_noiseOffset = glm::vec3(0.0f);
+					m_windDirection = glm::vec3(0.0f);
+					m_noiseFreq = 0.15f;
+					m_fogDensity = 0.03f;
+					m_fogPhaseGParam = -0.5f;
+					m_fogScattering = 1.0f;
+					m_fogAbsorption = 0.0f;
 
-				// Set camera and light data:
-				m_camera.setPosition(65.0f, 2.7f, 1.7f);
-				m_camera.setPitch(1.3f);
-				m_camera.setYaw(-189.7f);
-				m_camera.findForward();
+					// Set camera data:
+					m_camera.setPosition(65.0f, 2.7f, 1.7f);
+					m_camera.setPitch(1.3f);
+					m_camera.setYaw(-189.7f);
+					m_camera.findForward();
 
-				m_numActiveLights = 4;
+					// Set light data:
+					m_numActiveLights = 4;
 
-				m_pointLightPosition[0] = glm::vec3(0.0f, 3.0f, 10.0f);
-				m_pointLightPosition[1] = glm::vec3(0.0f, 3.0f, 50.0f);
-				m_pointLightPosition[2] = glm::vec3(50.0f, 1.0f, 10.0f);
-				m_pointLightPosition[3] = glm::vec3(-5.0f, 0.0f, -50.0f);
-						
-				m_pointLightDiffuse[0] = glm::vec3(1.0f);
-				m_pointLightDiffuse[1] = glm::vec3(1.0f);
-				m_pointLightDiffuse[2] = glm::vec3(1.0f);
-				m_pointLightDiffuse[3] = glm::vec3(1.0f);
+					m_pointLightPosition[0] = glm::vec3(0.0f, 3.0f, 10.0f);
+					m_pointLightPosition[1] = glm::vec3(0.0f, 3.0f, 50.0f);
+					m_pointLightPosition[2] = glm::vec3(50.0f, 1.0f, 10.0f);
+					m_pointLightPosition[3] = glm::vec3(-5.0f, 0.0f, -50.0f);
 
-				m_pointLightRadius[0] = 20.0f;
-				m_pointLightRadius[1] = 20.0f;
-				m_pointLightRadius[2] = 20.0f;
-				m_pointLightRadius[3] = 20.0f;
+					m_pointLightDiffuse[0] = glm::vec3(1.0f);
+					m_pointLightDiffuse[1] = glm::vec3(1.0f);
+					m_pointLightDiffuse[2] = glm::vec3(1.0f);
+					m_pointLightDiffuse[3] = glm::vec3(1.0f);
 
-				m_useLUT = false;
-				m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
-				m_linearOrExpFroxels = false;	// Use exponential froxel distribution.
+					m_pointLightRadius[0] = 20.0f;
+					m_pointLightRadius[1] = 20.0f;
+					m_pointLightRadius[2] = 20.0f;
+					m_pointLightRadius[3] = 20.0f;
 
-				break;
-			case NO_LUT_STANDARD_SHADOW:
-				m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
-				m_useLUT = true;
-				m_hooblerOrKovalovs = true;		// Use Hoobler's LUT.
+					m_useLUT = false;
+					m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
+					m_linearOrExpFroxels = false;	// Use exponential froxel distribution.
 
-				break;
-			case HOOBLER_LUT_STANDARD_SHADOW:
-				m_testingSetup = KOVALOVS_LUT_STANDARD_SHADOW;
-				m_hooblerOrKovalovs = false;	// Use Kovalovs's LUT.
+					break;
+				case NO_LUT_STANDARD_SHADOW:
+					m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
+					m_useLUT = true;
+					m_hooblerOrKovalovs = true;		// Use Hoobler's LUT.
 
-				break;
-			case KOVALOVS_LUT_STANDARD_SHADOW:
-				m_testingSetup = NO_LUT_VSM;
-				m_useLUT = false;
-				m_shadowMapTechnique = ShadowMapTechnique::VSM;
+					break;
+				case HOOBLER_LUT_STANDARD_SHADOW:
+					m_testingSetup = KOVALOVS_LUT_STANDARD_SHADOW;
+					m_hooblerOrKovalovs = false;	// Use Kovalovs's LUT.
 
-				break;
-			case NO_LUT_VSM:
-				m_testingSetup = NO_LUT_ESM;
-				m_shadowMapTechnique = ShadowMapTechnique::ESM;
+					break;
+				case KOVALOVS_LUT_STANDARD_SHADOW:
+					m_testingSetup = NO_LUT_VSM;
+					m_useLUT = false;
+					m_shadowMapTechnique = ShadowMapTechnique::VSM;
 
-				break;
-			case NO_LUT_ESM:
-				m_testingSetup = NO_LUT_LIN_DIST;
-				m_linearOrExpFroxels = true;	// Use linear froxel distribution.
+					break;
+				case NO_LUT_VSM:
+					m_testingSetup = NO_LUT_ESM;
+					m_shadowMapTechnique = ShadowMapTechnique::ESM;
 
-				break;
-			case NO_LUT_LIN_DIST:
-				m_testingSetup = START_VAL;
+					break;
+				case NO_LUT_ESM:
+					m_testingSetup = NO_LUT_LIN_DIST;
+					m_linearOrExpFroxels = true;	// Use linear froxel distribution.
 
-				// Reset test variables to default:
-				m_linearOrExpFroxels = false;
-				m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
+					break;
+				case NO_LUT_LIN_DIST:
+					m_testingSetup = START_VAL;
 
-				m_currentlyTesting = false;
-				return;
+					// Reset test variables to default:
+					m_linearOrExpFroxels = false;
+					m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
+
+					m_currentlyTesting = false;
+					return;
+				}
+				m_currentIteration = 0;
 			}
-			g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame(m_filePaths[(int)m_testingSetup], nv::perf::AppendDateTime::yes);
+			const std::string filePath = m_filePaths[(int)m_testingSetup];
+			g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame(std::string(filePath + std::to_string(m_currentIteration)).c_str(), nv::perf::AppendDateTime::yes);
 		}
 #endif
 	}
@@ -527,9 +534,6 @@ void App::render()
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	// Dispatch fog accumulation compute shader ------------------------------------------------------------------
-#ifdef NV_PERF_ENABLE_INSTRUMENTATION
-	g_nvPerfSDKReportGenerator.PushRange("Fog accumulation");
-#endif
 	Renderer::pushDebugGroup(m_fogAccumText);
 	{
 		if (m_evenFrame)
@@ -541,10 +545,6 @@ void App::render()
 		FogRenderer::dispatch(c_fogNumWorkGroups.x, c_fogNumWorkGroups.y, 1, m_fogAccumShader);
 	}
 	Renderer::popDebugGroup();
-
-#ifdef NV_PERF_ENABLE_INSTRUMENTATION
-	g_nvPerfSDKReportGenerator.PopRange();
-#endif
 
 	// DEPTH PASS ------------------------------------------------------------------------------------------------
 	Renderer::pushDebugGroup(m_depthPassText);
@@ -675,14 +675,23 @@ void App::gui()
 
 			ImGui::DragFloat3("Planet position", &m_planetPosition.x, 0.1f);
 
-			if (ImGui::Button("Start testing"))
-				if (!m_currentlyTesting)
+			if (!m_currentlyTesting)
+			{
+				if (ImGui::Button("Start testing"))
 				{
 					m_currentlyTesting = true;
 					m_testingSetup = TestingSetup::START_VAL;
 				}
-			if (m_currentlyTesting)
+			}
+			else
+			{
+				if (ImGui::Button("Start testing"))
+					m_currentlyTesting = false;
+
 				ImGui::Text("Currently testing, don't adjust any parameters!");
+				ImGui::Text("Test iteration: %i out of %i", m_currentIteration + 1, c_numTestIterations);
+				ImGui::Text("Testing scenario: %i out of 6", (int)m_testingSetup + 1);
+			}
 
 			if (ImGui::CollapsingHeader("Fog parameters"))
 			{
