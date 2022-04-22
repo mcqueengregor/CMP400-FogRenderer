@@ -1,9 +1,19 @@
 #version 430
-layout (local_size_x = 160, local_size_y = 9, local_size_z = 1) in;
+layout (local_size_x = 16, local_size_y = 9, local_size_z = 1) in;
 layout (rgba32f, binding = 2) uniform image3D imgInput;
 layout (rgba32f, binding = 3) uniform image3D imgOutput;
 
 // Based on Wronski's chapter on volumetric fog in GPU Pro 360, chapt. 18:
+
+const uint TEX_DEPTH = 64;
+
+
+float getFroxelDepth(uint z)
+{
+	const float near = 0.1, far = 150.0;
+	float farOverNear = far / near;
+	return near * pow(farOverNear, float(z) / (float(TEX_DEPTH) - 1.0));
+}
 
 vec4 accumulateScattering(vec4 currentSlice, vec4 nextSlice)
 {
@@ -26,13 +36,12 @@ void main()
 
 	// Write data from first slice of input texture into first slice of output texture:
 	imageStore(imgOutput, ivec3(gl_GlobalInvocationID.xy, 0.0), currentSliceVal);
-	const uint texDepth = 64;
 
 	// Accumulate scattering and transmittance for each texture slice:
-	for (uint z = 1; z < texDepth; ++z)
+	for (uint z = 1; z < TEX_DEPTH; ++z)
 	{
 		const ivec3 coords = ivec3(gl_GlobalInvocationID.xy, z);
-
+		
 		// Read scattering and extinction values from input 3D texture:
 		vec4 nextSliceVal = imageLoad(imgInput, coords);
 		currentSliceVal = accumulateScattering(currentSliceVal, nextSliceVal);

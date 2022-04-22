@@ -146,65 +146,69 @@ void App::run()
 
 void App::processInput(GLFWwindow* window, float dt)
 {
-	// If ESC is pressed, close the window:
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
-	// Toggle wireframe ('1' = off, '2' = on):
-	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+	// Block keyboard input while running tests:
+	if (!m_currentlyTesting)
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		m_wireframe = false;
-	}
-	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		m_wireframe = true;
-	}
-	float cameraSpeed = 10.0f * dt;
+		// If ESC is pressed, close the window:
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+			glfwSetWindowShouldClose(window, true);
 
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT))
-		cameraSpeed = 20.0f * dt;
-
-	// Camera move controls:
-	if (glfwGetKey(window, GLFW_KEY_W))
-		m_camera.moveForward(cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_A))
-		m_camera.moveRight(-cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_S))
-		m_camera.moveForward(-cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_D))
-		m_camera.moveRight(cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_Q))
-		m_camera.moveWorldUp(-cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_E))
-		m_camera.moveWorldUp(cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_R))
-		m_camera.moveUp(cameraSpeed);
-	if (glfwGetKey(window, GLFW_KEY_F))
-		m_camera.moveUp(-cameraSpeed);
-
-	// Only rotate camera with mouse movement if RMB is held:
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT))
-	{
-		if (!m_hasRightClicked)
+		// Toggle wireframe ('1' = off, '2' = on):
+		if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
 		{
-			// Store cursor's original window position and disable cursor (lock to window centre and hide):
-			m_hasRightClicked = true;
-			glfwGetCursorPos(window, &m_originalCursorPosX, &m_originalCursorPosY);
-			glfwSetCursorPos(window, m_windowDim.x / 2, m_windowDim.y / 2);
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			m_wireframe = false;
 		}
-	}
-	else
-		if (m_hasRightClicked)
+		if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
 		{
-			// Enable normal cursor movement and restore original window position:
-			m_hasRightClicked = false;
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			glfwSetCursorPos(window, m_originalCursorPosX, m_originalCursorPosY);
-			m_camera.resetFirstMouse();
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			m_wireframe = true;
 		}
+		float cameraSpeed = 10.0f * dt;
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT))
+			cameraSpeed = 20.0f * dt;
+
+		// Camera move controls:
+		if (glfwGetKey(window, GLFW_KEY_W))
+			m_camera.moveForward(cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_A))
+			m_camera.moveRight(-cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_S))
+			m_camera.moveForward(-cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_D))
+			m_camera.moveRight(cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_Q))
+			m_camera.moveWorldUp(-cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_E))
+			m_camera.moveWorldUp(cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_R))
+			m_camera.moveUp(cameraSpeed);
+		if (glfwGetKey(window, GLFW_KEY_F))
+			m_camera.moveUp(-cameraSpeed);
+
+		// Only rotate camera with mouse movement if RMB is held:
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT))
+		{
+			if (!m_hasRightClicked)
+			{
+				// Store cursor's original window position and disable cursor (lock to window centre and hide):
+				m_hasRightClicked = true;
+				glfwGetCursorPos(window, &m_originalCursorPosX, &m_originalCursorPosY);
+				glfwSetCursorPos(window, m_windowDim.x / 2, m_windowDim.y / 2);
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			}
+		}
+		else
+			if (m_hasRightClicked)
+			{
+				// Enable normal cursor movement and restore original window position:
+				m_hasRightClicked = false;
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				glfwSetCursorPos(window, m_originalCursorPosX, m_originalCursorPosY);
+				m_camera.resetFirstMouse();
+			}
+	}
 }
 
 void App::update(float dt)
@@ -236,6 +240,8 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.use();
 		m_fogScatterAbsorbShader.setVec3("u_cameraPos", m_camera.getPosition());
 		m_fogScatterAbsorbShader.setVec3("u_cameraForward", m_camera.getForward());
+		m_fogScatterAbsorbShader.setVec3("u_cameraUp", m_camera.getUp());
+		m_fogScatterAbsorbShader.setVec3("u_cameraRight", m_camera.getRight());
 		m_fogScatterAbsorbShader.setVec2("u_cameraPlanes", glm::vec2(m_nearPlane, m_farPlane));
 
 		// Set fog data:
@@ -265,7 +271,7 @@ void App::update(float dt)
 		for (int i = 0; i < m_numActiveLights; ++i)
 			m_fogScatterAbsorbShader.setPointLight("u_pointLights[" + std::to_string(i) + "]", m_light[i]);
 		m_fogScatterAbsorbShader.setInt("u_numActiveLights", m_numActiveLights);
-		m_fogScatterAbsorbShader.setFloat("u_lightFarPlane", m_lightViewPlanes.y);
+		m_fogScatterAbsorbShader.setVec2("u_lightPlanes", m_lightViewPlanes);
 		for (int i = 0; i < 6 * m_numActiveLights; ++i)
 			m_fogScatterAbsorbShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 		m_fogScatterAbsorbShader.setInt("u_frameIndex", m_frameIndex);
@@ -273,13 +279,14 @@ void App::update(float dt)
 		m_fogCompositeShader.use();
 		m_fogCompositeShader.setFloat("u_farPlane", m_farPlane);
 
+		// Set fog data:
 		m_varianceShadowmapLayeredShader.use();
-		m_varianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
+		m_varianceShadowmapLayeredShader.setVec2("u_lightPlanes", m_lightViewPlanes);
 		for (int i = 0; i < 6 * m_numActiveLights; ++i)
 			m_varianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 
 		m_instanceVarianceShadowmapLayeredShader.use();
-		m_instanceVarianceShadowmapLayeredShader.setFloat("u_farPlane", m_lightViewPlanes.y);
+		m_instanceVarianceShadowmapLayeredShader.setVec2("u_lightPlanes", m_lightViewPlanes);
 		for (int i = 0; i < 6 * m_numActiveLights; ++i)
 			m_instanceVarianceShadowmapLayeredShader.setMat4("u_lightMatrices[" + std::to_string(i) + "]", m_lightSpaceMat[i]);
 	}
@@ -301,7 +308,7 @@ void App::update(float dt)
 		if (!g_nvPerfSDKReportGenerator.IsCollectingReport())
 		{		
 			++m_currentIteration;
-			if (m_currentIteration >= c_numTestIterations)
+			if (m_currentIteration >= m_numTestIterations)
 			{
 				// Increment testing setup variable, end testing if last setup has been tested:
 				switch (m_testingSetup)
@@ -322,6 +329,7 @@ void App::update(float dt)
 					m_fogPhaseGParam = -0.5f;
 					m_fogScattering = 1.0f;
 					m_fogAbsorption = 0.0f;
+					m_fogAlbedo = glm::vec3(1.0f);
 
 					// Set camera data:
 					m_camera.setPosition(65.0f, 2.7f, 1.7f);
@@ -376,9 +384,10 @@ void App::update(float dt)
 					break;
 				case NO_LUT_ESM:
 					m_testingSetup = NO_LUT_LIN_DIST;
+					m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
 					m_linearOrExpFroxels = true;	// Use linear froxel distribution.
 
-					break;
+					//break;	// **TODO: Fix linear froxel dist. bug and let testing application run tests for this.**
 				case NO_LUT_LIN_DIST:
 					m_testingSetup = START_VAL;
 
@@ -387,6 +396,7 @@ void App::update(float dt)
 					m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
 
 					m_currentlyTesting = false;
+					m_currentIteration = m_numTestIterations;
 					return;
 				}
 				m_currentIteration = 0;
@@ -420,7 +430,7 @@ void App::render()
 
 		// Render to shadowmap texture array:
 		Renderer::setTarget(m_pointShadowmapArrayFBO);
-		Renderer::clear(1.0f, 1.0f, 0.0f, 1.0f, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		Renderer::clear(m_lightViewPlanes.y, m_lightViewPlanes.y * m_lightViewPlanes.y, 0.0f, 1.0f, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (int i = 0; i < m_numActiveLights; ++i)
 		{
@@ -670,96 +680,91 @@ void App::gui()
 		{
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::Text("Camera position: (%f, %f, %f)", m_camera.getPosition().x, m_camera.getPosition().y, m_camera.getPosition().z);
-			ImGui::Checkbox("Output depth", &m_outputDepth);
-			ImGui::Checkbox("Apply fog", &m_applyFog);
-
-			ImGui::DragFloat3("Planet position", &m_planetPosition.x, 0.1f);
+			ImGui::Text("Number of test iterations per scenario (max 500):");
+			ImGui::DragInt("", (int*)&m_numTestIterations, 1.0f, 1, 500);
 
 			if (!m_currentlyTesting)
 			{
+				ImGui::Checkbox("Output depth", &m_outputDepth);
+				ImGui::Checkbox("Apply fog", &m_applyFog);
+
 				if (ImGui::Button("Start testing"))
 				{
 					m_currentlyTesting = true;
 					m_testingSetup = TestingSetup::START_VAL;
+					m_currentIteration = m_numTestIterations;
 				}
-			}
-			else
-			{
-				if (ImGui::Button("Start testing"))
-					m_currentlyTesting = false;
 
-				ImGui::Text("Currently testing, don't adjust any parameters!");
-				ImGui::Text("Test iteration: %i out of %i", m_currentIteration + 1, c_numTestIterations);
-				ImGui::Text("Testing scenario: %i out of 6", (int)m_testingSetup + 1);
-			}
-
-			if (ImGui::CollapsingHeader("Fog parameters"))
-			{
-				if (ImGui::Button("Regenerate LUTs"))
-					generateLUTs();
-
-				ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
-				ImGui::SliderFloat3("Wind direction", &m_windDirection.x, -1.0, 1.0f);
-				ImGui::SliderFloat3("Fog albedo", &m_fogAlbedo.x, 0.0f, 1.0f);
-				ImGui::SliderFloat("Fog scattering", &m_fogScattering, 0.0f, 1.0f);
-				ImGui::SliderFloat("Fog absorption", &m_fogAbsorption, 0.0f, 1.0f);
-				ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
-
-				ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
-				ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
-				ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
-				ImGui::Checkbox("Use sample jittering?", &m_useJitter);
-				ImGui::Checkbox("Use LUT?", &m_useLUT);
-				if (m_useLUT)
+				if (ImGui::CollapsingHeader("Fog parameters"))
 				{
-					ImGui::Checkbox("Hoobler or Kovalovs?", &m_hooblerOrKovalovs);
-					if (m_hooblerOrKovalovs)
-						ImGui::Text("Current LUT: Kovalovs");
+					if (ImGui::Button("Regenerate LUTs"))
+						generateLUTs();
+
+					ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
+					ImGui::SliderFloat3("Wind direction", &m_windDirection.x, -1.0, 1.0f);
+					ImGui::SliderFloat3("Fog albedo", &m_fogAlbedo.x, 0.0f, 1.0f);
+					ImGui::SliderFloat("Fog scattering", &m_fogScattering, 0.0f, 1.0f);
+					ImGui::SliderFloat("Fog absorption", &m_fogAbsorption, 0.0f, 1.0f);
+					ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
+
+					ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);
+					ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
+					ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
+					ImGui::Checkbox("Use sample jittering?", &m_useJitter);
+					ImGui::Checkbox("Use LUT?", &m_useLUT);
+					if (m_useLUT)
+					{
+						ImGui::Checkbox("Hoobler or Kovalovs?", &m_hooblerOrKovalovs);
+						if (m_hooblerOrKovalovs)
+							ImGui::Text("Current LUT: Kovalovs");
+						else
+							ImGui::Text("Current LUT: Hoobler");
+					}
+
+					ImGui::SliderInt("Shadow Map Technique", (int*)&m_shadowMapTechnique, 0, 2);
+					switch (m_shadowMapTechnique)
+					{
+					case STANDARD:
+						ImGui::Text("Current technique: Standard shadow mapping");
+						break;
+					case VSM:
+						ImGui::Text("Current technique: Variance shadow mapping");
+						break;
+					case ESM:
+						ImGui::Text("Current technique: Exponential shadow mapping");
+						break;
+					}
+
+					ImGui::Checkbox("Exponential or linear froxels?", &m_linearOrExpFroxels);
+					if (m_linearOrExpFroxels)
+						ImGui::Text("Froxel depth distribution: linear");
 					else
-						ImGui::Text("Current LUT: Hoobler");
+						ImGui::Text("Froxel depth distribution: exponential");
 				}
-
-				ImGui::SliderInt("Shadow Map Technique", (int*)&m_shadowMapTechnique, 0, 2);
-				switch (m_shadowMapTechnique)
+				if (ImGui::CollapsingHeader("Light parameters"))
 				{
-				case STANDARD:
-					ImGui::Text("Current technique: Standard shadow mapping");
-					break;
-				case VSM:
-					ImGui::Text("Current technique: Variance shadow mapping");
-					break;
-				case ESM:
-					ImGui::Text("Current technique: Exponential shadow mapping");
-					break;
+					ImGui::SliderInt("Num active lights", (int*)&m_numActiveLights, 1, NUM_LIGHTS);
+					ImGui::SliderInt("Current light", (int*)&m_currentLight, 0, NUM_LIGHTS - 1);
+					ImGui::SliderFloat3("Light position", &m_pointLightPosition[m_currentLight].x, -50.0f, 50.0f);
+					ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse[m_currentLight].r, 0.0f, 1.0f);
+					ImGui::SliderFloat("Light radius", &m_pointLightRadius[m_currentLight], 1.0f, 100.0f);
+					ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.2f, 0.0f);
+					ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
+					ImGui::SliderFloat("Light linear", &m_pointLightLinear, 0.0f, 1.0f);
+					ImGui::SliderFloat("Light quadratic", &m_pointLightQuadratic, 0.0f, 1.0f);
+				}
+			}
+			else
+			{
+				if (ImGui::Button("Stop testing"))
+				{
+					m_currentlyTesting = false;
+					m_testingSetup = TestingSetup::START_VAL;
 				}
 
-				ImGui::Checkbox("Exponential or linear froxels?", &m_linearOrExpFroxels);
-				if (m_linearOrExpFroxels)
-					ImGui::Text("Froxel depth distribution: linear");
-				else
-					ImGui::Text("Froxel depth distribution: exponential");
+				ImGui::Text("Test iteration: %i out of %i", m_currentIteration + 1, m_numTestIterations);
+				ImGui::Text("Testing scenario: %i out of 5", (int)m_testingSetup + 1);	// **TODO: When linear froxel dist. is working, change this to "out of 6".**
 			}
-			if (ImGui::CollapsingHeader("Light parameters"))
-			{
-				ImGui::SliderInt("Num active lights", (int*)&m_numActiveLights, 1, NUM_LIGHTS);
-				ImGui::SliderInt("Current light", (int*)&m_currentLight, 0, NUM_LIGHTS - 1);
-				ImGui::SliderFloat3("Light position", &m_pointLightPosition[m_currentLight].x, -50.0f, 50.0f);
-				ImGui::SliderFloat3("Light diffuse", &m_pointLightDiffuse[m_currentLight].r, 0.0f, 1.0f);
-				ImGui::SliderFloat("Light radius", &m_pointLightRadius[m_currentLight], 1.0f, 100.0f);
-				ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.2f, 0.0f);
-				ImGui::SliderFloat("Light constant", &m_pointLightConstant, 0.0f, 1.0f);
-				ImGui::SliderFloat("Light linear", &m_pointLightLinear, 0.0f, 1.0f);
-				ImGui::SliderFloat("Light quadratic", &m_pointLightQuadratic, 0.0f, 1.0f);
-			}
-		}
-		ImGui::End();
-
-		ImGui::Begin("Current LUT");
-		{
-			if (m_hooblerOrKovalovs)
-				ImGui::Image((void*)m_kovalovsLUT, ImVec2(256, 256));
-			else
-				ImGui::Image((void*)m_hooblerSumLUT, ImVec2(256, 256));
 		}
 		ImGui::End();
 

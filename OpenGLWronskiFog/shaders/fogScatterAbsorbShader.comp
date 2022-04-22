@@ -1,5 +1,5 @@
 #version 430
-layout (local_size_x = 1, local_size_y = 9, local_size_z = 1) in;
+layout (local_size_x = 16, local_size_y = 9, local_size_z = 1) in;
 layout (rgba32f, binding = 1) uniform image3D imgOutput;
 
 // Based on Wronski's chapter on volumetric fog in GPU Pro 360, chapt. 18:
@@ -45,6 +45,8 @@ struct RaySphereResults
 // Camera data uniforms:
 uniform vec3	u_cameraPos;
 uniform vec3	u_cameraForward;
+uniform vec3	u_cameraUp;
+uniform vec3	u_cameraRight;
 uniform vec2	u_cameraPlanes;
 
 uniform vec3 u_fogTexSize;	// Added since imageSize() seems to return zeroes at random, for some reason.
@@ -65,7 +67,7 @@ uniform vec3	u_noiseOffset;
 
 // Light data uniforms:
 uniform int			u_numActiveLights;
-uniform float		u_lightFarPlane;
+uniform vec2		u_lightPlanes;
 uniform PointLight	u_pointLights[MAX_LIGHTS];
 uniform mat4		u_lightMatrices[6 * MAX_LIGHTS];
 
@@ -219,16 +221,16 @@ bool outsideShadowmapBounds(vec3 projectedCoords)
 		|| projectedCoords.z > 1.0;
 }
 
+float lineariseDepth(float depth)
+{
+	// Convert depth from range [0,1] to [-1,1]:
+	const float near = u_lightPlanes.x, far = u_lightPlanes.y;
+	float z = depth * 2.0 - 1.0;
+	return (2.0 * near * far) / (far + near - z * (far - near));
+}
+
 float calcShadow(uint lightIndex, vec3 worldPos)
 {
-	/*
-		When considering the lighting for a froxel from a given light, how does shadowing get taken into account?
-		Each light knows about its surroundings, and its associated shadowmap details when froxels would be in this
-		light's shadow. If one froxel is in a light's shadow, it may or may not be in the shadow of other lights as
-		well.
-		Because of this, each froxel needs to check whether it is in shadow for each light. 
-	*/
-
 	// Iterate through all layers of shadowmap texture array for the current light:
 	for (uint i = 6 * lightIndex; i < 6 * lightIndex + 6; ++i)
 	{
@@ -238,21 +240,19 @@ float calcShadow(uint lightIndex, vec3 worldPos)
 		// Perform perspective division:
 		vec3 projectedCoords = lightSpacePos.xyz / lightSpacePos.w;
 
-		// Transform from [-1,1] range to [0,1] range:
-		projectedCoords =  0.5 * projectedCoords + 0.5;
+		// Transform x- and y-components from [-1,1] range to [0,1] range:
+		projectedCoords.xy = 0.5 * projectedCoords.xy + 0.5;
 
 		// If projected position is within light frustum, perform shadow test:
 		if (!outsideShadowmapBounds(projectedCoords))
 		{
-			// Get depth of closest occluder from shadowmap, scaled to [0, farPlane (squared)] range:
+			// Get depth of closest occluder from shadowmap:
 			vec2 moments = texture(u_pointShadowmapArray, vec3(projectedCoords.xy, float(i))).rg;
-			moments.x *= u_lightFarPlane;
-			moments.y *= u_lightFarPlane * u_lightFarPlane;
 			
-			vec3 lightDir = worldPos - u_pointLights[lightIndex].position;
-			float currentDepth = length(lightDir);
+			// Get linear depth of froxel from light:
+			float currentDepth = lineariseDepth(0.5 * projectedCoords.z + 0.5);
 
-			const float bias = 0.0;
+			const float bias = 0.05;
 
 			if (u_shadowMapTechnique == STANDARD)
 				return currentDepth > moments.x + bias ? 0.0 : 1.0;
@@ -296,11 +296,8 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
 	float farOverNear = far / near;
 	
-	float viewZExp;
-	vec3 uv;
-
-	viewZExp = near * pow(farOverNear, (globalThreadID.z + jitter) / (u_fogTexSize.z - 1));
-	uv = vec3(globalThreadID.xy / u_fogTexSize.xy, viewZExp / far);
+	float viewZExp = near * pow(farOverNear, (globalThreadID.z + jitter) / (u_fogTexSize.z - 1));
+	vec3 uv = vec3(globalThreadID.xy / u_fogTexSize.xy, viewZExp / far);
 
 	// Get NDC from UV coords (convert to exponential z-depth distribution from linear compute ID):
 	float ndcZ = (1.0 / uv.z - farOverNear) / (1.0 - farOverNear);
@@ -314,12 +311,15 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 	// If a linear froxel depth distribution is used, adjust depth from exponential to linear:
 	if (u_linOrExp)
 	{
-		// Calculate camera's up right and up vectors:
-		vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), u_cameraForward));
-		vec3 up = normalize(cross(right, u_cameraForward));
+		// Calculate froxel position relative to camera by projecting world position onto the camera's basis vectors:
+		vec3 view = vec3(dot(world.xyz, u_cameraRight), dot(world.xyz, u_cameraUp), dot(world.xyz, u_cameraForward));
 
-		vec3 view = vec3(dot(world.xyz, right), dot(world.xyz, up), dot(world.xyz, u_cameraForward));
-		view.z = near * globalThreadID.z * getFroxelThicknessLin();
+		// Adjust magnitude of relative position vector to linear distribution through multiplying normalised vector
+		// by scalar which will set z-component to desired linear depth without changing the vector's direction:
+		float desiredZDepth = near * globalThreadID.z * getFroxelThicknessLin();
+		vec3 normView = normalize(view);
+		float linearScalar = desiredZDepth / normView.z;
+		view = linearScalar * normView;
 
 		vec3 world = transpose(mat3(u_matrices.view)) * -view;
 	}
@@ -335,7 +335,7 @@ vec3 getUVCoords(vec3 worldPos, mat4 viewProj)
 	vec4 ndc = viewProj * vec4(worldPos, 1.0);
 	ndc.xyz /= ndc.w;
 
-	vec3 uv = ndc.xyz * 0.5 + 0.5;
+	vec3 uv = 0.5 * ndc.xyz + 0.5;
 
 	if (u_linOrExp)
 	{

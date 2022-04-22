@@ -97,7 +97,7 @@ private:
 
 	// Misc shader data (uniforms and dispatch group sizes):
 	// Fog data:
-	const glm::uvec3	c_fogNumWorkGroups		= glm::uvec3(160, 10, 64);	// Local work group size is (160, 9, 1) for a 160x90x64 texture
+	const glm::uvec3	c_fogNumWorkGroups		= glm::uvec3(10, 10, 64);	// Local work group size is (160, 9, 1) for a 160x90x64 texture
 	float				m_fogScattering			= 1.0f;
 	float				m_fogAbsorption			= 0.0f;
 	glm::vec3			m_fogAlbedo				= glm::vec3(1.0f);
@@ -214,8 +214,8 @@ private:
 
 	// Nvidia Perfkit/NSight Perf SDK data:
 	uint64_t		m_perfkitContext;
-	const GLuint	c_numTestIterations = 100;
-	GLuint			m_currentIteration = c_numTestIterations;
+	GLuint			m_numTestIterations = 100;
+	GLuint			m_currentIteration = m_numTestIterations;	// Set to m_numTestIterations so that it will wrap around to 0 on the first Perf SDK collection.
 	const char*		m_filePaths[6] = {
 		"NSightPerfSDKReports\\NoLUT_StandardShadow\\",
 		"NSightPerfSDKReports\\HooblerLUT_StandardShadow\\",

@@ -26,9 +26,11 @@ public:
 	
 	void		setPosition(glm::vec3 newPos) { m_position = newPos; }
 	void		setPosition(float x, float y, float z) { m_position = glm::vec3(x, y, z); }
-	glm::vec3	getPosition() { return m_position; };
-	glm::vec3	getForward() { return m_forward; };
-	void		resetFirstMouse() { m_firstMouse = true; }
+	glm::vec3	getPosition()		{ return m_position; };
+	glm::vec3	getForward()		{ return m_forward; };
+	glm::vec3	getUp()				{ return m_up; };
+	glm::vec3	getRight()			{ return m_right; };
+	void		resetFirstMouse()	{ m_firstMouse = true; }
 
 	void setPitch(float newPitch) { m_pitch = newPitch; }
 	void setYaw(float newYaw) { m_yaw = newYaw; }

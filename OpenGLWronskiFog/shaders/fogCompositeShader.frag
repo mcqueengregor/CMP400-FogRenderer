@@ -25,15 +25,13 @@ float getFroxelSliceIndex(float depth)
 void main()
 {
 	const float froxelDepth = texture(u_depthTex, texCoords).r * u_farPlane;			// Get linear depth value transformed to [0,farPlane] range.
-	float froxelSampleZ = getFroxelSliceIndex(froxelDepth) / MAX_FROXEL_SLICE_INDEX;	// Get froxel index, transformed to [0,1] range.
-	vec3 fogSamplePos = vec3(texCoords, froxelSampleZ);
+	vec3 fogSamplePos = vec3(texCoords, froxelDepth / u_farPlane);
 
-	fogSamplePos.z = froxelDepth / u_farPlane;
 	vec4 sampledFog = texture(u_fogAccumTex, fogSamplePos);
 	vec3 inScattering = sampledFog.rgb;
 	float transmittance = sampledFog.a;
 
 	vec3 sourceColour = texture(u_colourTex, texCoords).rgb;
 
-	FragColour = vec4(sourceColour * transmittance.xxx + inScattering, 1.0);
+	FragColour = vec4(sourceColour * transmittance + inScattering, 1.0);
 }
