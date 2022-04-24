@@ -16,7 +16,7 @@ float lineariseDepth(float depth)
 
 void main()
 {
-	// Find distance from fragment to light:
+	// Store distance from fragment to light:
 	float moment1 = lineariseDepth(0.5 * gl_FragCoord.z + 0.5);
 	
 	float moment2 = moment1 * moment1;

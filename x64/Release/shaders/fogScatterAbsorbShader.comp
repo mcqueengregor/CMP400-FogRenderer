@@ -337,16 +337,9 @@ vec3 getUVCoords(vec3 worldPos, mat4 viewProj)
 
 	vec3 uv = 0.5 * ndc.xyz + 0.5;
 
-	if (u_linOrExp)
-	{
-		uv.z = invLerp(near, far, dot(u_cameraForward, worldPos - u_cameraPos));
-	}
-	else
-	{
-		float uvZ = 1.0 / ((1.0 - farOverNear) * uv.z + farOverNear);
-		vec2 params = vec2(u_fogTexSize.z / log2(farOverNear), -(u_fogTexSize.z * log2(near) / log2(farOverNear)));
-		uv.z = max(log2(uvZ * far) * params.x + params.y, 0.0) / u_fogTexSize.z;
-	}
+	float uvZ = 1.0 / ((1.0 - farOverNear) * uv.z + farOverNear);
+	vec2 params = vec2(u_fogTexSize.z / log2(farOverNear), -(u_fogTexSize.z * log2(near) / log2(farOverNear)));
+	uv.z = max(log2(uvZ * far) * params.x + params.y, 0.0) / u_fogTexSize.z;
 
 	return uv;
 }

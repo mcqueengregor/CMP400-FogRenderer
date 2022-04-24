@@ -402,7 +402,7 @@ void App::update(float dt)
 				m_currentIteration = 0;
 			}
 			const std::string filePath = m_filePaths[(int)m_testingSetup];
-			g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame(std::string(filePath + std::to_string(m_currentIteration)).c_str(), nv::perf::AppendDateTime::yes);
+			g_nvPerfSDKReportGenerator.StartCollectionOnNextFrame(std::string(filePath + std::to_string(m_currentIteration)).c_str(), nv::perf::AppendDateTime::no);
 		}
 #endif
 	}
