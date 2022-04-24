@@ -361,17 +361,17 @@ void App::update(float dt)
 
 					break;
 				case NO_LUT_STANDARD_SHADOW:
-					m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
-					m_useLUT = true;
-					m_hooblerOrKovalovs = true;		// Use Hoobler's LUT.
-
-					break;
-				case HOOBLER_LUT_STANDARD_SHADOW:
 					m_testingSetup = KOVALOVS_LUT_STANDARD_SHADOW;
-					m_hooblerOrKovalovs = false;	// Use Kovalovs's LUT.
+					m_useLUT = true;
+					m_hooblerOrKovalovs = true;		// Use Kovalovs' LUT.
 
 					break;
 				case KOVALOVS_LUT_STANDARD_SHADOW:
+					m_testingSetup = HOOBLER_LUT_STANDARD_SHADOW;
+					m_hooblerOrKovalovs = false;	// Use Hoobler's LUT.
+
+					break;
+				case HOOBLER_LUT_STANDARD_SHADOW:
 					m_testingSetup = NO_LUT_VSM;
 					m_useLUT = false;
 					m_shadowMapTechnique = ShadowMapTechnique::VSM;
@@ -387,7 +387,7 @@ void App::update(float dt)
 					m_shadowMapTechnique = ShadowMapTechnique::STANDARD;
 					m_linearOrExpFroxels = true;	// Use linear froxel distribution.
 
-					//break;	// **TODO: Fix linear froxel dist. bug and let testing application run tests for this.**
+					break;
 				case NO_LUT_LIN_DIST:
 					m_testingSetup = START_VAL;
 
@@ -763,7 +763,7 @@ void App::gui()
 				}
 
 				ImGui::Text("Test iteration: %i out of %i", m_currentIteration + 1, m_numTestIterations);
-				ImGui::Text("Testing scenario: %i out of 5", (int)m_testingSetup + 1);	// **TODO: When linear froxel dist. is working, change this to "out of 6".**
+				ImGui::Text("Testing scenario: %i out of 6", (int)m_testingSetup + 1);
 			}
 		}
 		ImGui::End();
