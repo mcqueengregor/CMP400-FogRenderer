@@ -74,7 +74,7 @@ uniform mat4		u_lightMatrices[6 * MAX_LIGHTS];
 // Texture samplers:
 uniform sampler2DArray	u_pointShadowmapArray;
 uniform sampler3D		u_previousFrameFog;
-uniform sampler2D		u_LUT;
+uniform sampler2D		u_LUT[MAX_LIGHTS];
 
 // Controls:
 uniform bool	u_useHetFog;
@@ -475,8 +475,8 @@ float sampleKovalovsLUT(Ray froxelRay, float froxelThickness, uint lightIndex)
 	}
 
 	// Sample Kovalovs LUT with UV coords pair, return difference of scattering intensities:
-	const float scattering0 = texture(u_LUT, uvPair.xy).r;
-	const float scattering1 = texture(u_LUT, uvPair.zw).r;
+	const float scattering0 = texture(u_LUT[0], uvPair.xy).r;
+	const float scattering1 = texture(u_LUT[0], uvPair.zw).r;
 
 	return abs(scattering0 - scattering1);
 }
@@ -493,7 +493,7 @@ vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex)
 	float tRange = lightRadius + lightDist - t0;
 
 	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(normalize(lightToCamera), cameraToFroxel)) / PI);
-	vec4 scattering = texture(u_LUT, uv);
+	vec4 scattering = texture(u_LUT[lightIndex], uv);
 
 	return scattering.rgb * scattering.a;
 }

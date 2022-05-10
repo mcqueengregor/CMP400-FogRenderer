@@ -163,5 +163,8 @@
     <None Include="shaders\layeredShadowShader.geom" />
     <None Include="shaders\worldSpaceShader.vert" />
     <None Include="shaders\instancedShadowShader.vert" />
+    <None Include="shaders\hooblerSumLUTShader.comp" />
+    <None Include="shaders\hooblerAccumLUTShader.comp" />
+    <None Include="shaders\kovalovsLUTShader.comp" />
   </ItemGroup>
 </Project>

@@ -84,6 +84,25 @@ bool App::init(GLuint glfwVersionMaj, GLuint glfwVersionMin)
 	ImGui_ImplGlfw_InitForOpenGL(m_window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
+	// Initialise light data before Hoobler LUT is generated:
+	for (int i = 0; i < NUM_LIGHTS; ++i)
+	{
+		m_light[i].setPosition(m_pointLightPosition[i]);
+		m_light[i].setDiffuse(m_pointLightDiffuse[i]);
+		m_light[i].setRadius(m_pointLightRadius[i]);
+
+		// Calculate light space matrices:
+		glm::mat4 lightProj = glm::perspective(glm::radians(90.0f), 1.0f, m_lightViewPlanes.x, m_lightViewPlanes.y);
+
+		m_lightSpaceMat[6 * i + 0] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Right	(+ve x)
+		m_lightSpaceMat[6 * i + 1] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Left		(-ve x)
+		m_lightSpaceMat[6 * i + 2] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));	// Up		(+ve y)
+		m_lightSpaceMat[6 * i + 3] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));	// Down		(-ve y)
+		m_lightSpaceMat[6 * i + 4] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Forward	(+ve z)
+		m_lightSpaceMat[6 * i + 5] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Back		(-ve z)
+	}
+
+
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 	// Initialise Nvidia NSight Perf SDK:
 	g_clockStatus = NVPW_DEVICE_CLOCK_STATUS_UNKNOWN;
@@ -216,6 +235,12 @@ void App::update(float dt)
 	m_planet.setPosition(m_planetPosition);
 	m_planet.scale(2.0f);
 
+	Renderer::pushDebugGroup(std::string("Hoobler LUT generation"));
+	{
+		generateHooblerLUT();
+	}
+	Renderer::popDebugGroup();
+
 	for (int i = 0; i < m_numActiveLights; ++i)
 	{
 		m_light[i].setPosition(m_pointLightPosition[i]);
@@ -225,12 +250,12 @@ void App::update(float dt)
 		// Calculate light space matrices:
 		glm::mat4 lightProj = glm::perspective(glm::radians(90.0f), 1.0f, m_lightViewPlanes.x, m_lightViewPlanes.y);
 
-		m_lightSpaceMat[6 * i + 0] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Right	(+ve x)
-		m_lightSpaceMat[6 * i + 1] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Left		(-ve x)
-		m_lightSpaceMat[6 * i + 2] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f));	// Up		(+ve y)
-		m_lightSpaceMat[6 * i + 3] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f));	// Down		(-ve y)
-		m_lightSpaceMat[6 * i + 4] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Forward	(+ve z)
-		m_lightSpaceMat[6 * i + 5] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f,  1.0f,  0.0f));	// Back		(-ve z)
+		m_lightSpaceMat[6 * i + 0] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Right	(+ve x)
+		m_lightSpaceMat[6 * i + 1] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Left		(-ve x)
+		m_lightSpaceMat[6 * i + 2] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));	// Up		(+ve y)
+		m_lightSpaceMat[6 * i + 3] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));	// Down		(-ve y)
+		m_lightSpaceMat[6 * i + 4] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Forward	(+ve z)
+		m_lightSpaceMat[6 * i + 5] = lightProj * glm::lookAt(m_pointLightPosition[i], m_pointLightPosition[i] + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));	// Back		(-ve z)
 	}
 
 	// Set shader uniforms:
@@ -251,7 +276,7 @@ void App::update(float dt)
 		m_fogScatterAbsorbShader.setFloat("u_phaseGParam", m_fogPhaseGParam);
 		m_fogScatterAbsorbShader.setFloat("u_fogDensity", m_fogDensity);
 		m_fogScatterAbsorbShader.setFloat("u_lightIntensity", m_lightIntensity);
-		
+
 		m_fogScatterAbsorbShader.setBool("u_useHetFog", m_useHeterogeneousFog);
 		m_fogScatterAbsorbShader.setBool("u_useJitter", m_useJitter);
 		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
@@ -306,7 +331,7 @@ void App::update(float dt)
 	{
 #ifdef NV_PERF_ENABLE_INSTRUMENTATION
 		if (!g_nvPerfSDKReportGenerator.IsCollectingReport())
-		{		
+		{
 			++m_currentIteration;
 			if (m_currentIteration >= m_numTestIterations)
 			{
@@ -651,7 +676,7 @@ void App::render()
 
 		// Render fullscreen quad, applying accumulated fog if desired:
 		m_applyFog ? FogRenderer::compositeFog(m_fullscreenQuadVAO, m_FBOColourBuffer, m_FBODepthBuffer, m_fogAccumTex, m_fogCompositeShader)
-				   : Renderer::drawFBO(m_fullscreenQuadVAO, m_fullscreenShader, *m_currentOutputBuffer, GL_TEXTURE_2D);
+			: Renderer::drawFBO(m_fullscreenQuadVAO, m_fullscreenShader, *m_currentOutputBuffer, GL_TEXTURE_2D);
 	}
 	Renderer::popDebugGroup();
 
@@ -796,7 +821,8 @@ void App::runFogScatterAbsorb()
 	if (m_hooblerOrKovalovs)
 		Renderer::bindTex(2, GL_TEXTURE_2D, m_kovalovsLUT);		// Use Kovalovs' LUT (true).
 	else
-		Renderer::bindTex(2, GL_TEXTURE_2D, m_hooblerAccumLUT);	// Use Hoobler's LUT (false).
+		for (int i = 0; i < m_numActiveLights; ++i)
+			Renderer::bindTex(2 + i, GL_TEXTURE_2D, m_hooblerSumLUT[i]);	// Use Hoobler's LUT (false).
 
 	FogRenderer::dispatch(c_fogNumWorkGroups, m_fogScatterAbsorbShader);
 }
@@ -880,11 +906,11 @@ void App::setupShaders()
 	m_instanceShader.loadShader("shaders/instancedShader.vert", "shaders/textureShader.frag");
 	m_instanceDepthShader.loadShader("shaders/instancedShader.vert", "shaders/depthShader.frag");
 	m_fullscreenShader.loadShader("shaders/fullscreenShader.vert", "shaders/fullscreenShader.frag");
-	
+
 	m_fogScatterAbsorbShader.loadShader("shaders/fogScatterAbsorbShader.comp");
 	m_fogAccumShader.loadShader("shaders/fogAccumulationShader.comp");
 	m_fogCompositeShader.loadShader("shaders/fullscreenShader.vert", "shaders/fogCompositeShader.frag");
-	
+
 	m_varianceShadowmapLayeredShader.loadShader("shaders/worldSpaceShader.vert", "shaders/varianceShadowShader.frag", "shaders/layeredShadowShader.geom");
 	m_instanceVarianceShadowmapLayeredShader.loadShader("shaders/instancedShadowShader.vert", "shaders/varianceShadowShader.frag", "shaders/layeredShadowShader.geom");
 	m_horiBlurLayeredShader.loadShader("shaders/fullscreenShader.vert", "shaders/horiBlurArrayShader.frag", "shaders/layeredBlurShader.geom");
@@ -908,7 +934,8 @@ void App::setupShaders()
 	m_fogScatterAbsorbShader.use();
 	m_fogScatterAbsorbShader.setInt("u_pointShadowmapArray", 0);
 	m_fogScatterAbsorbShader.setInt("u_previousFrameFog", 1);
-	m_fogScatterAbsorbShader.setInt("u_LUT", 2);
+	for (int i = 0; i < NUM_LIGHTS; ++i)
+		m_fogScatterAbsorbShader.setInt("u_LUT[" + std::to_string(i) + "]", 2 + i);
 	m_fogScatterAbsorbShader.setVec3("u_fogTexSize", c_fogTexSize);
 }
 
@@ -928,42 +955,52 @@ void App::setupFBOs()
 	m_fullscreenColourFBO = createFBO(m_windowDim, m_FBOColourBuffer);
 	m_fullscreenDepthFBO = createFBO(m_windowDim, m_FBODepthBuffer);
 
-	m_pointShadowmapArrayFBO =		createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_pointShadowmapArrayColour, m_pointShadowmapArrayDepth);
-	m_horiBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_horiBlurShadowmapArrayColour);
-	m_vertBlurShadowmapArrayFBO =	createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_vertBlurShadowmapArrayColour);
+	m_pointShadowmapArrayFBO = createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_pointShadowmapArrayColour, m_pointShadowmapArrayDepth);
+	m_horiBlurShadowmapArrayFBO = createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_horiBlurShadowmapArrayColour);
+	m_vertBlurShadowmapArrayFBO = createShadowmapArray(glm::uvec3(c_shadowmapDim.x, c_shadowmapDim.y, 6 * NUM_LIGHTS), m_vertBlurShadowmapArrayColour);
 }
 
 void App::generateLUTs()
 {
+	generateHooblerLUT();
+	generateKovalovsLUT();
+	std::cout << "Generated LUTs!" << std::endl;
+}
+
+void App::generateHooblerLUT()
+{
 	// Generate Hoobler's scattering LUT:
-	m_hooblerAccumLUTShader.use();
-	m_hooblerAccumLUTShader.setFloat("u_scatteringCoefficient", m_fogScattering);
-	m_hooblerAccumLUTShader.setFloat("u_absorptionCoefficient", m_fogAbsorption);
+	for (int i = 0; i < NUM_LIGHTS; ++i)
+	{
+		m_hooblerAccumLUTShader.use();
+		m_hooblerAccumLUTShader.setVec3("u_camPos", m_camera.getPosition());
+		m_hooblerAccumLUTShader.setVec3("u_lightPos", m_light[i].getPosition());
 
-	const float distance = 10.0f;
-	const float vecLength = 15.0f;
-	const float lightZFar = 50.0f;
+		const float vecLength = 15.0f;
+		const float lightZFar = 50.0f;
 
-	m_hooblerAccumLUTShader.setFloat("u_distance", distance);
-	m_hooblerAccumLUTShader.setFloat("u_gParam", m_fogPhaseGParam);
+		m_hooblerAccumLUTShader.setFloat("u_gParam", m_fogPhaseGParam);
 
-	m_hooblerAccumLUTShader.setFloat("u_vecLength", vecLength);
-	m_hooblerAccumLUTShader.setFloat("u_lightZFar", lightZFar);
+		m_hooblerAccumLUTShader.setFloat("u_vecLength", vecLength);
+		m_hooblerAccumLUTShader.setFloat("u_lightZFar", lightZFar);
 
-	m_hooblerAccumLUTShader.setFloat("u_constant", m_light[0].getConstant());
-	m_hooblerAccumLUTShader.setFloat("u_linear", m_light[0].getLinear());
-	m_hooblerAccumLUTShader.setFloat("u_quadratic", m_light[0].getQuadratic());
+		m_hooblerAccumLUTShader.setFloat("u_constant", m_light[0].getConstant());
+		m_hooblerAccumLUTShader.setFloat("u_linear", m_light[0].getLinear());
+		m_hooblerAccumLUTShader.setFloat("u_quadratic", m_light[0].getQuadratic());
 
-	glBindImageTexture(3, m_hooblerScatterAccumTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-	glBindImageTexture(4, m_hooblerAccumLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-	glDispatchCompute(32, 128, 1);
+		glBindImageTexture(4, m_hooblerAccumLUT[i], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glDispatchCompute(4, 64, 1);
 
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	m_hooblerSumLUTShader.use();
-	glBindImageTexture(5, m_hooblerSumLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-	glDispatchCompute(32, 256, 1);
+		m_hooblerSumLUTShader.use();
+		glBindImageTexture(5, m_hooblerSumLUT[i], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glDispatchCompute(1, 128, 1);
+	}
+}
 
+void App::generateKovalovsLUT()
+{
 	// Generate Kovalovs' scattering LUT:
 	m_kovalovsLUTShader.use();
 
@@ -975,8 +1012,6 @@ void App::generateLUTs()
 
 	glBindImageTexture(6, m_kovalovsLUT, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 	glDispatchCompute(1, 1024, 1);
-
-	std::cout << "Generated LUTs!" << std::endl;
 }
 
 void App::setupModelsAndTextures()
@@ -1101,9 +1136,11 @@ void App::setupModelsAndTextures()
 
 	// Create LUTs:
 	m_kovalovsLUT = createTexture(c_LUTDim, GL_R32F);
-	m_hooblerAccumLUT = createTexture(c_LUTDim, GL_RGBA32F);
-	m_hooblerScatterAccumTex = createTexture(c_LUTDim, GL_RGBA32F);
-	m_hooblerSumLUT = createTexture(c_LUTDim, GL_RGBA32F);
+	for (int i = 0; i < NUM_LIGHTS; ++i)
+	{
+		m_hooblerAccumLUT[i] = createTexture(glm::uvec2(128, 512), GL_RGBA32F);
+		m_hooblerSumLUT[i] = createTexture(glm::uvec2(128, 512), GL_RGBA32F);
+	}
 }
 
 GLFWwindow* App::initWindow()
@@ -1119,7 +1156,7 @@ GLFWwindow* App::initWindow()
 	glfwMakeContextCurrent(newWindow);	// Make the context of the window the main context on the current thread.
 
 	// Initialise GLAD before calling any OpenGL function:
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) 
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cout << "Failed to initialise GLAD.\n";
 		delete newWindow;
