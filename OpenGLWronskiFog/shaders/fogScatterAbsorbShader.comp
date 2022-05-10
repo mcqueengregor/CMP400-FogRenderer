@@ -492,7 +492,7 @@ vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex)
 	float t0 = max(lightDist - lightRadius, 0.0);
 	float tRange = lightRadius + lightDist - t0;
 
-	vec2 uv = vec2((lightDist - t0) / tRange, acos(-dot(normalize(lightToCamera), cameraToFroxel)) / PI);
+	vec2 uv = vec2((lightDist - t0) / tRange, 1 - (acos(-dot(normalize(lightToCamera), cameraToFroxel)) / PI));
 	vec4 scattering = texture(u_LUT[lightIndex], uv);
 
 	return scattering.rgb * scattering.a;

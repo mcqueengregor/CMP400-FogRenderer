@@ -62,7 +62,7 @@ void main()
     float scattering = phase * attenuation;
 
     scattering *= tRange / dim.x;
-    scattering /= 100.0;
+    scattering /= 200.0;
 
     accumP[idIndex] = scattering;
 
