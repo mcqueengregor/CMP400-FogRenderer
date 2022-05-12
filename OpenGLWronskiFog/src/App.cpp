@@ -235,11 +235,7 @@ void App::update(float dt)
 	m_planet.setPosition(m_planetPosition);
 	m_planet.scale(2.0f);
 
-	Renderer::pushDebugGroup(std::string("Hoobler LUT generation"));
-	{
-		generateHooblerLUT();
-	}
-	Renderer::popDebugGroup();
+	generateHooblerLUT();
 
 	for (int i = 0; i < m_numActiveLights; ++i)
 	{
@@ -972,6 +968,8 @@ void App::generateHooblerLUT()
 	// Generate Hoobler's scattering LUT:
 	for (int i = 0; i < NUM_LIGHTS; ++i)
 	{
+		Renderer::pushDebugGroup(std::string("Hoobler LUT generation"));
+
 		m_hooblerAccumLUTShader.use();
 		m_hooblerAccumLUTShader.setVec3("u_camPos", m_camera.getPosition());
 		m_hooblerAccumLUTShader.setVec3("u_lightPos", m_light[i].getPosition());
@@ -996,6 +994,8 @@ void App::generateHooblerLUT()
 		m_hooblerSumLUTShader.use();
 		glBindImageTexture(5, m_hooblerSumLUT[i], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glDispatchCompute(1, 128, 1);
+
+		Renderer::popDebugGroup();
 	}
 }
 
