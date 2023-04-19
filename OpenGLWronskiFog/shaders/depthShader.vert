@@ -3,6 +3,8 @@ layout (location = 0) in vec3 aPos;
 
 uniform mat4 world;
 
+out vec4 worldPos;
+
 layout (std140) uniform Matrices
 {
 	mat4 proj;
@@ -11,5 +13,6 @@ layout (std140) uniform Matrices
 
 void main()
 {
-	gl_Position = u_Matrices.proj * u_Matrices.view * world * vec4(aPos, 1.0);
+	worldPos = world * vec4(aPos, 1.0);
+	gl_Position = u_Matrices.proj * u_Matrices.view * worldPos;
 }

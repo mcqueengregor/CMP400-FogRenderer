@@ -4,6 +4,16 @@ in vec2 texCoords;
 
 out vec4 FragColour;
 
+layout (std140) uniform Matrices
+{
+	mat4 proj;
+	mat4 view;
+
+	mat4 invViewProj;
+	mat4 prevViewProj;
+	mat4 currentViewProj;
+} u_matrices;
+
 uniform sampler2D u_colourTex;
 uniform sampler2D u_depthTex;
 uniform sampler3D u_fogAccumTex;
@@ -24,8 +34,8 @@ float getFroxelSliceIndex(float depth)
 
 void main()
 {
-	const float froxelDepth = texture(u_depthTex, texCoords).r * u_farPlane;			// Get linear depth value transformed to [0,farPlane] range.
-	vec3 fogSamplePos = vec3(texCoords, froxelDepth / u_farPlane);
+	const float froxelDepth = texture(u_depthTex, texCoords).r;			// Get linear depth value in [0,1] range.
+	vec3 fogSamplePos = vec3(texCoords, froxelDepth);
 
 	vec4 sampledFog = texture(u_fogAccumTex, fogSamplePos);
 	vec3 inScattering = sampledFog.rgb;
@@ -33,5 +43,5 @@ void main()
 
 	vec3 sourceColour = texture(u_colourTex, texCoords).rgb;
 
-	FragColour = vec4(sourceColour * transmittance + inScattering, 1.0);
+	FragColour = vec4(pow(sourceColour * transmittance + inScattering, vec3(1.0 / 2.2)), 1.0);
 }

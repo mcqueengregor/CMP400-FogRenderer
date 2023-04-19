@@ -188,6 +188,15 @@ void App::processInput(GLFWwindow* window, float dt)
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT))
 			cameraSpeed = 20.0f * dt;
 
+		if (glfwGetKey(window, GLFW_KEY_F1))
+			m_camera.setPosition(glm::vec3(12.736526f, 4.780272f, 12.834976f));
+		else if (glfwGetKey(window, GLFW_KEY_F2))
+			m_camera.setPosition(glm::vec3(17.188892f, -1.068849, -9.923071f));
+		else if (glfwGetKey(window, GLFW_KEY_F3))
+			m_camera.setPosition(glm::vec3(12.140459f, -4.357580, 49.83553));
+		else if (glfwGetKey(window, GLFW_KEY_F4))
+			m_camera.setPosition(glm::vec3(45.196182f, 2.859746f, 29.600281f));
+
 		// Camera move controls:
 		if (glfwGetKey(window, GLFW_KEY_W))
 			m_camera.moveForward(cameraSpeed);

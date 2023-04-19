@@ -7,7 +7,6 @@ layout (rgba32f, binding = 3) uniform image3D imgOutput;
 
 const uint TEX_DEPTH = 64;
 
-
 float getFroxelDepth(uint z)
 {
 	const float near = 0.1, far = 150.0;
@@ -29,7 +28,29 @@ void outputResults(ivec3 writePos, vec4 outputVal)
 	imageStore(imgOutput, writePos, finalVal);
 }
 
-void main()
+void hillaireIntegration()
+{
+	// Accumulate scattering and transmittance for each texture slice:
+	vec4 integScattTrans = vec4(0.0, 0.0, 0.0, 1.0);
+	for (uint z = 0; z < TEX_DEPTH; ++z)
+	{
+		const ivec3 coords = ivec3(gl_GlobalInvocationID.xy, z);
+
+		vec4 scatteringExt = imageLoad(imgInput, coords);
+		const vec3 scattering = scatteringExt.rgb;
+		const float ext = max(scatteringExt.a, 0.000001);
+		const float trans = exp(-scatteringExt.a);
+
+		const vec3 integScatt = (scattering - scattering * trans) / ext;
+
+		integScattTrans.rgb += integScattTrans.a * integScatt;
+		integScattTrans.a *= trans;
+
+		imageStore(imgOutput, coords, integScattTrans);
+	}
+}
+
+void wronskiIntegration()
 {
 	// Get scattering and extinction from the first slice texel:
 	vec4 currentSliceVal = imageLoad(imgInput, ivec3(gl_GlobalInvocationID.xy, 0.0));
@@ -48,4 +69,10 @@ void main()
 		
 		outputResults(coords, currentSliceVal);
 	}
+}
+
+void main()
+{
+	hillaireIntegration();
+	//wronskiIntegration();
 }

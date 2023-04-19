@@ -133,7 +133,8 @@ public:
 
 	static inline void clear(GLuint clearFlags)
 	{
-		glClearColor(0.2f, 0.3f, 0.3f, 1.f);
+		const glm::vec3 c = glm::vec3(glm::pow(0.2f, 2.2f), glm::pow(0.3f, 2.2f), glm::pow(0.3f, 2.2f));
+		glClearColor(c.x, c.y, c.z, 1.f);
 		glClear(clearFlags);
 	}
 
