@@ -32,14 +32,20 @@ void hillaireIntegration()
 {
 	// Accumulate scattering and transmittance for each texture slice:
 	vec4 integScattTrans = vec4(0.0, 0.0, 0.0, 1.0);
+	float prevFroxelDepth = getFroxelDepth(0);
+
 	for (uint z = 0; z < TEX_DEPTH; ++z)
 	{
 		const ivec3 coords = ivec3(gl_GlobalInvocationID.xy, z);
+		
+		float currentFroxelDepth = getFroxelDepth(z);
+		float stepLength = currentFroxelDepth - prevFroxelDepth;
+		prevFroxelDepth = currentFroxelDepth;
 
 		vec4 scatteringExt = imageLoad(imgInput, coords);
 		const vec3 scattering = scatteringExt.rgb;
 		const float ext = max(scatteringExt.a, 0.000001);
-		const float trans = exp(-scatteringExt.a);
+		const float trans = exp(-scatteringExt.a * stepLength);
 
 		const vec3 integScatt = (scattering - scattering * trans) / ext;
 

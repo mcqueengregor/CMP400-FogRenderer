@@ -49,8 +49,5 @@ float NDCtoUVz(vec3 ndc)
 
 void main()
 {
-	vec3 ndc = worldToNDC();
-	float z = NDCtoUVz(ndc);
-
-	FragColour = vec4(vec3(z), 1.0);
+	FragColour = vec4(vec3(gl_FragCoord.z), 1.0);
 }

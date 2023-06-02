@@ -140,7 +140,7 @@ private:
 	float m_pointLightConstant = 1.0f;
 	float m_pointLightLinear = 0.09f;
 	float m_pointLightQuadratic = 0.032f;
-	float m_lightIntensity = 100.0f;
+	float m_lightIntensity = 1.0f;
 
 	GLuint m_currentLight = 0;
 	GLuint m_numActiveLights = 1;
