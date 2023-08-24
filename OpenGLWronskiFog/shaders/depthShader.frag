@@ -39,15 +39,18 @@ float NDCtoUVz(vec3 ndc)
 
 	const float farOverNear = far / near;
 
-	z = (1.0 / z - farOverNear) / (1.0 - farOverNear);
+	z = 1.0 / ((1.0 - farOverNear) * z + farOverNear);
 
 	vec2 params = vec2(NUM_FROXEL_SLICES / log2(farOverNear), -(NUM_FROXEL_SLICES * log2(near) / log2(farOverNear)));
 	float viewZ = z * far;
-	z = (max(log2(viewZ) * params.x + params.y, 0.0)) / NUM_FROXEL_SLICES;
+	z = max(log2(viewZ) * params.x + params.y, 0.0) / NUM_FROXEL_SLICES;
 	return z;
 }
 
 void main()
 {
-	FragColour = vec4(vec3(gl_FragCoord.z), 1.0);
+	vec3 ndc = worldToNDC();
+	float z = NDCtoUVz(ndc);
+
+	FragColour = vec4(vec3(z), 1.0);
 }

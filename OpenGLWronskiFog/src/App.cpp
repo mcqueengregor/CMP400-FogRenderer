@@ -733,8 +733,8 @@ void App::gui()
 					ImGui::SliderFloat("Noise frequency", &m_noiseFreq, 0.001f, 1.0f);
 					ImGui::SliderFloat3("Wind direction", &m_windDirection.x, -1.0, 1.0f);
 					ImGui::SliderFloat3("Fog albedo", &m_fogAlbedo.x, 0.0f, 1.0f);
-					ImGui::SliderFloat("Fog scattering", &m_fogScattering, 0.0f, 100.0f);
-					ImGui::SliderFloat("Fog absorption", &m_fogAbsorption, 0.0f, 100.0f);
+					ImGui::SliderFloat("Fog scattering", &m_fogScattering, 0.0f, 10.0f);
+					ImGui::SliderFloat("Fog absorption", &m_fogAbsorption, 0.0f, 10.0f);
 					ImGui::SliderFloat("Fog phase g-parameter", &m_fogPhaseGParam, -0.999f, 0.999f);
 
 					ImGui::Checkbox("Use heterogenous density?", &m_useHeterogeneousFog);

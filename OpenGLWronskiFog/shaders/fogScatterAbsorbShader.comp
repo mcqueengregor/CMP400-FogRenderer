@@ -296,8 +296,8 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
 	float farOverNear = far / near;
 	
-	float viewZExp = near * pow(farOverNear, (globalThreadID.z + jitter) / (u_fogTexSize.z - 1));
-	vec3 uv = vec3(globalThreadID.xy / u_fogTexSize.xy, viewZExp / far);
+	float viewZExp = near * pow(farOverNear, (globalThreadID.z + 0.5 + jitter) / u_fogTexSize.z);
+	vec3 uv = vec3((globalThreadID.xy + 0.5) / u_fogTexSize.xy, viewZExp / far);
 
 	// Get NDC from UV coords (convert to exponential z-depth distribution from linear compute ID):
 	float ndcZ = (1.0 / uv.z - farOverNear) / (1.0 - farOverNear);
