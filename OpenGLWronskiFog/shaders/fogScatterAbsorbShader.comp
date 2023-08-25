@@ -225,8 +225,7 @@ float lineariseDepth(float depth)
 {
 	// Convert depth from range [0,1] to [-1,1]:
 	const float near = u_lightPlanes.x, far = u_lightPlanes.y;
-	float z = depth * 2.0 - 1.0;
-	return (2.0 * near * far) / (far + near - z * (far - near));
+	return (2.0 * near * far) / (far + near - depth * (far - near));
 }
 
 float calcShadow(uint lightIndex, vec3 worldPos)
@@ -250,7 +249,7 @@ float calcShadow(uint lightIndex, vec3 worldPos)
 			vec2 moments = texture(u_pointShadowmapArray, vec3(projectedCoords.xy, float(i))).rg;
 			
 			// Get linear depth of froxel from light:
-			float currentDepth = lineariseDepth(0.5 * projectedCoords.z + 0.5);
+			float currentDepth = lineariseDepth(projectedCoords.z);
 
 			const float bias = 0.05;
 
@@ -321,7 +320,7 @@ vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
 		float linearScalar = desiredZDepth / normView.z;
 		view = linearScalar * normView;
 
-		vec3 world = transpose(mat3(u_matrices.view)) * -view;
+		world.xyz = transpose(mat3(u_matrices.view)) * -view;
 	}
 
 	return world.xyz;
@@ -357,7 +356,7 @@ vec3 calcPointLight(uint lightIndex, vec3 worldPos)
     float dist = length(u_pointLights[lightIndex].position - worldPos);
     float attenuation = 1.0 / (u_pointLights[lightIndex].constant + u_pointLights[lightIndex].linear * dist + u_pointLights[lightIndex].quadratic * (dist * dist));    
 
-    return u_pointLights[lightIndex].diffuse * u_lightIntensity;
+    return u_pointLights[lightIndex].diffuse * u_lightIntensity * attenuation;
 }
 
 /* KOVALOVS LUT SAMPLING: ------------------------------------------------------------------------------ */

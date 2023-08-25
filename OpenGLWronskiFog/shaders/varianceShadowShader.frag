@@ -17,7 +17,6 @@ void main()
 {
 	// Store distance from fragment to light:
 	float moment1 = lineariseDepth(gl_FragCoord.z);
-	
 	float moment2 = moment1 * moment1;
 
 	// Output depth and depth squared:
