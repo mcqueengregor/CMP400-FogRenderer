@@ -166,5 +166,6 @@
     <None Include="shaders\hooblerSumLUTShader.comp" />
     <None Include="shaders\hooblerAccumLUTShader.comp" />
     <None Include="shaders\kovalovsLUTShader.comp" />
+    <None Include="shaders\instancedDepthShader.vert" />
   </ItemGroup>
 </Project>

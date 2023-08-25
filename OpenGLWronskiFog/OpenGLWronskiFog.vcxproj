@@ -202,6 +202,7 @@
     <None Include="shaders\hooblerAccumLUTShader.comp" />
     <None Include="shaders\hooblerSumLUTShader.comp" />
     <None Include="shaders\horiBlurArrayShader.frag" />
+    <None Include="shaders\instancedDepthShader.vert" />
     <None Include="shaders\instancedShader.vert" />
     <None Include="shaders\instancedShadowShader.vert" />
     <None Include="shaders\kovalovsLUTShader.comp" />

@@ -10,14 +10,13 @@ float lineariseDepth(float depth)
 {
 	// Convert depth from range [0,1] to [-1,1]:
 	const float near = u_lightPlanes.x, far = u_lightPlanes.y;
-	float z = depth * 2.0 - 1.0;
-	return (2.0 * near * far) / (far + near - z * (far - near));
+	return (2.0 * near * far) / (far + near - depth * (far - near));
 }
 
 void main()
 {
 	// Store distance from fragment to light:
-	float moment1 = lineariseDepth(0.5 * gl_FragCoord.z + 0.5);
+	float moment1 = lineariseDepth(gl_FragCoord.z);
 	
 	float moment2 = moment1 * moment1;
 

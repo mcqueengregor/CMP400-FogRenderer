@@ -909,7 +909,7 @@ void App::setupShaders()
 	m_singleColourShader.loadShader("shaders/textureShader.vert", "shaders/singleColourShader.frag");
 	m_depthShader.loadShader("shaders/depthShader.vert", "shaders/depthShader.frag");
 	m_instanceShader.loadShader("shaders/instancedShader.vert", "shaders/textureShader.frag");
-	m_instanceDepthShader.loadShader("shaders/instancedShader.vert", "shaders/depthShader.frag");
+	m_instanceDepthShader.loadShader("shaders/instancedDepthShader.vert", "shaders/depthShader.frag");
 	m_fullscreenShader.loadShader("shaders/fullscreenShader.vert", "shaders/fullscreenShader.frag");
 
 	m_fogScatterAbsorbShader.loadShader("shaders/fogScatterAbsorbShader.comp");
