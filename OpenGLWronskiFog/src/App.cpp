@@ -491,7 +491,7 @@ void App::render()
 			{
 				m_varianceShadowmapLayeredShader.use();
 				m_varianceShadowmapLayeredShader.setMat4("world", m_planeWorld);
-				Renderer::draw(m_planeVAO, 6, m_varianceShadowmapLayeredShader);
+				//Renderer::draw(m_planeVAO, 6, m_varianceShadowmapLayeredShader);
 			}
 			Renderer::popDebugGroup();
 		}
@@ -608,15 +608,22 @@ void App::render()
 		{
 			m_depthShader.use();
 			m_depthShader.setMat4("world", m_planeWorld);
-			Renderer::draw(m_planeVAO, 6, m_depthShader);
+			//Renderer::draw(m_planeVAO, 6, m_depthShader);
 		}
 		Renderer::popDebugGroup();
 
 		Renderer::pushDebugGroup(m_debugRenderText);
 		{
 			glDisable(GL_CULL_FACE);
-			m_depthShader.setMat4("world", m_lightCubeWorld);
-			Renderer::draw(m_lightCubeVAO, 36, m_depthShader);
+			for (int i = 0; i < m_numActiveLights; ++i)
+			{
+				m_lightCubeWorld = glm::translate(glm::mat4(1.0f), m_pointLightPosition[i]);
+				m_lightCubeWorld = glm::scale(m_lightCubeWorld, glm::vec3(0.25f));
+
+				m_depthShader.use();
+				m_depthShader.setMat4("world", m_lightCubeWorld);
+				Renderer::draw(m_lightCubeVAO, 36, m_depthShader);
+			}
 			glEnable(GL_CULL_FACE);
 		}
 		Renderer::popDebugGroup();
@@ -644,7 +651,7 @@ void App::render()
 		{
 			m_shader.use();
 			m_shader.setMat4("world", m_planeWorld);
-			Renderer::draw(m_planeVAO, 6, m_shader);
+			//Renderer::draw(m_planeVAO, 6, m_shader);
 		}
 		Renderer::popDebugGroup();
 
