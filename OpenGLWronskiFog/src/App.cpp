@@ -284,6 +284,7 @@ void App::update(float dt)
 
 		m_fogScatterAbsorbShader.setBool("u_useHetFog", m_useHeterogeneousFog);
 		m_fogScatterAbsorbShader.setBool("u_useJitter", m_useJitter);
+		m_fogScatterAbsorbShader.setBool("u_useScreenspaceJitter", m_useScreenspaceJitter);
 		m_fogScatterAbsorbShader.setBool("u_useTemporal", m_useTemporal);
 		m_fogScatterAbsorbShader.setBool("u_useLUT", m_useLUT);
 		m_fogScatterAbsorbShader.setBool("u_KorH", m_hooblerOrKovalovs);
@@ -748,6 +749,7 @@ void App::gui()
 					ImGui::SliderFloat("Fog density scalar", &m_fogDensity, 0.0f, 1.0f);
 					ImGui::Checkbox("Use temporal filtering?", &m_useTemporal);
 					ImGui::Checkbox("Use sample jittering?", &m_useJitter);
+					ImGui::Checkbox("Use screenspace jitter?", &m_useScreenspaceJitter);
 					ImGui::Checkbox("Use LUT?", &m_useLUT);
 					if (m_useLUT)
 					{

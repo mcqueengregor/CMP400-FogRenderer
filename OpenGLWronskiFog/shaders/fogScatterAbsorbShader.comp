@@ -79,6 +79,7 @@ uniform sampler2D		u_LUT[MAX_LIGHTS];
 // Controls:
 uniform bool	u_useHetFog;
 uniform bool	u_useJitter;
+uniform bool	u_useScreenspaceJitter;
 uniform bool	u_useTemporal;
 uniform bool	u_useLUT;
 uniform bool	u_KorH;		// 'false' = use Hoobler LUT, 'true' = use Kovalovs LUT.
@@ -290,13 +291,13 @@ float getFroxelThicknessLin()
 	return (far - near) / numThreads;
 }
 
-vec3 getWorldPos(uvec3 globalThreadID, float jitter, mat4 invViewProj)
+vec3 getWorldPos(uvec3 globalThreadID, vec3 jitter, mat4 invViewProj)
 {
 	const float near = u_cameraPlanes.x, far = u_cameraPlanes.y;
 	float farOverNear = far / near;
 	
-	float viewZExp = near * pow(farOverNear, (globalThreadID.z + 0.5 + jitter) / u_fogTexSize.z);
-	vec3 uv = vec3((globalThreadID.xy + 0.5) / u_fogTexSize.xy, viewZExp / far);
+	float viewZExp = near * pow(farOverNear, (globalThreadID.z + 0.5 + jitter.z) / u_fogTexSize.z);
+	vec3 uv = vec3((globalThreadID.xy + jitter.xy + 0.5) / u_fogTexSize.xy, viewZExp / far);
 
 	// Get NDC from UV coords (convert to exponential z-depth distribution from linear compute ID):
 	float ndcZ = (1.0 / uv.z - farOverNear) / (1.0 - farOverNear);
@@ -500,10 +501,21 @@ vec3 sampleHooblerLUT(vec3 worldPos, uint lightIndex)
 void main()
 {
 	// Get jitter for the current thread with Halton sequences, tranformed to [-0.5, 0.5] range:
-	float jitter = 0.0;
+	vec3 jitter = vec3(0.0);
 
 	if (u_useJitter)
-		jitter = halton(u_frameIndex, 3);
+	{
+		jitter.x = halton(u_frameIndex, 2);
+		jitter.y = halton(u_frameIndex, 3);
+		jitter.z = jitter.y;
+
+		jitter = jitter * 2.0 - 1.0;
+
+		if (!u_useScreenspaceJitter)
+		{
+			jitter.xy *= 0.0;
+		}
+	}
 
 	vec3 jitteredWorldPos = getWorldPos(gl_GlobalInvocationID, jitter, u_matrices.invViewProj);
 	float thickness;
@@ -568,7 +580,7 @@ void main()
 	// Reproject to previous frame's results, if the unjittered world position can be projected to previous frame blend results:
 	if (u_useTemporal)
 	{
-		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, 0.0, u_matrices.invViewProj);
+		vec3 unjitteredWorldPos = getWorldPos(gl_GlobalInvocationID, vec3(0.0), u_matrices.invViewProj);
 		vec3 blendUV = getUVCoords(unjitteredWorldPos, u_matrices.prevViewProj);
 
 		// If UV coordinates are within previous frame's frustum, blend results:

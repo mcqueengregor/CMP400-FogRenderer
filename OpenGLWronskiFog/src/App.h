@@ -109,6 +109,7 @@ private:
 	bool				m_useShadows = true;
 	bool				m_useTemporal = false;
 	bool				m_useJitter = true;
+	bool				m_useScreenspaceJitter = false;
 
 	// Noise data:
 	float				m_noiseFreq = 0.15f;
